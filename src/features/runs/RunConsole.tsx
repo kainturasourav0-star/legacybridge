@@ -26,6 +26,22 @@ export function RunConsole({ runId }: { runId: string }) {
   const [pollingActive, setPollingActive] = useState(true);
   const [approvalComments, setApprovalComments] = useState('');
   const [decidingApproval, setDecidingApproval] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    try {
+      setRetrying(true);
+      const res = await fetch(`/api/runs/${runId}/retry`, { method: 'POST' });
+      if (res.ok) {
+        const newRun = await res.json();
+        window.location.href = `/runs/${newRun.id}`;
+      }
+    } catch (e) {
+      console.error('Failed to retry run:', e);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const fetchRun = useCallback(async () => {
     try {
@@ -194,6 +210,15 @@ export function RunConsole({ runId }: { runId: string }) {
               <span>Explore Extracted Results</span>
             </Link>
           )}
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-850 hover:bg-slate-800 text-slate-200 text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
+            title="Re-execute this task run"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${retrying ? 'animate-spin text-teal-400' : ''}`} />
+            <span>{retrying ? 'Retrying...' : 'Re-Run Task'}</span>
+          </button>
           <button
             onClick={fetchRun}
             className="p-2.5 rounded-xl border border-slate-800 bg-slate-800/60 hover:bg-slate-700 text-slate-300 transition"

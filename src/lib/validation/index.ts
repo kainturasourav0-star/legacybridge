@@ -6,11 +6,12 @@ export const CreateTaskSchema = z.object({
   name: z.string().min(2, 'Task name is required'),
   prompt: z.string().min(10, 'Please describe the task in natural language (at least 10 chars)'),
   sourceUrl: z.string().url('A valid HTTP/HTTPS source URL is required'),
-  destinationType: z.enum(['slack', 'sheets', 'csv']).default('slack'),
+  destinationType: z.enum(['slack', 'sheets', 'csv', 'webhook', 'postgres']).default('slack'),
   destinationConfig: z.object({
     slackChannel: z.string().optional(),
     sheetName: z.string().optional(),
     webhookUrl: z.string().url().optional(),
+    targetTable: z.string().optional(),
   }).optional(),
   expectedSchema: z.record(z.any()).default({}),
   scheduleCron: z.string().optional().nullable(),

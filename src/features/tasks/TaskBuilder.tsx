@@ -15,7 +15,11 @@ import {
   Code2,
   AlertCircle,
   ShieldCheck,
-  Zap
+  Zap,
+  AlignLeft,
+  FileSpreadsheet,
+  Database,
+  ArrowRight
 } from 'lucide-react';
 
 export function TaskBuilder() {
@@ -23,8 +27,14 @@ export function TaskBuilder() {
   const [name, setName] = useState('');
   const [prompt, setPrompt] = useState('');
   const [sourceUrl, setSourceUrl] = useState('http://localhost:8080');
-  const [destinationType, setDestinationType] = useState<'slack' | 'sheets' | 'csv'>('slack');
+  const [destinationType, setDestinationType] = useState<'slack' | 'sheets' | 'csv' | 'webhook' | 'postgres'>('slack');
+  
+  // Destination specific fields
   const [slackChannel, setSlackChannel] = useState('#ops-reports');
+  const [sheetName, setSheetName] = useState('Q3_Sales_Master');
+  const [webhookUrl, setWebhookUrl] = useState('https://webhook.site/mock-target');
+  const [targetTable, setTargetTable] = useState('inventory_orders');
+
   const [scheduleHuman, setScheduleHuman] = useState('Every weekday at 7:30 AM');
   const [isWriteAction, setIsWriteAction] = useState(false);
   const [schemaText, setSchemaText] = useState(
@@ -59,15 +69,116 @@ export function TaskBuilder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSampleTask = () => {
-    setName('Acme ERP Q3 Sales by Region');
-    setPrompt('Open the inventory portal, retrieve Q3 sales by region, and send the results to our operations Slack channel.');
-    setSourceUrl('http://localhost:8080');
-    setDestinationType('slack');
-    setSlackChannel('#ops-reports');
-    setScheduleHuman('Every weekday at 7:30 AM');
-    setIsWriteAction(false);
+  const loadPreset = (presetKey: 'sales' | 'reorder' | 'supplier') => {
     setError(null);
+    if (presetKey === 'sales') {
+      setName('Acme ERP Q3 Sales by Region');
+      setPrompt('Open the inventory portal, retrieve Q3 sales by region, and send the results to our operations Slack channel.');
+      setSourceUrl('http://localhost:8080');
+      setDestinationType('slack');
+      setSlackChannel('#ops-reports');
+      setScheduleHuman('Every weekday at 7:30 AM');
+      setIsWriteAction(false);
+      setSchemaText(
+        JSON.stringify(
+          {
+            type: 'object',
+            required: ['report_title', 'items', 'total_revenue'],
+            properties: {
+              report_title: { type: 'string' },
+              period: { type: 'string' },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['region', 'sku', 'units_sold', 'revenue'],
+                  properties: {
+                    region: { type: 'string' },
+                    sku: { type: 'string' },
+                    units_sold: { type: 'integer' },
+                    revenue: { type: 'number' },
+                  },
+                },
+              },
+              total_revenue: { type: 'number' },
+            },
+          },
+          null,
+          2
+        )
+      );
+    } else if (presetKey === 'reorder') {
+      setName('Acme ERP Stock Level Reorder Adjustment');
+      setPrompt('Navigate to inventory management, locate SKU-9042 with stock under 15 units, and adjust the reorder threshold to 50.');
+      setSourceUrl('http://localhost:8080');
+      setDestinationType('slack');
+      setSlackChannel('#warehouse-alerts');
+      setScheduleHuman('On-demand manual trigger');
+      setIsWriteAction(true);
+      setSchemaText(
+        JSON.stringify(
+          {
+            type: 'object',
+            required: ['sku', 'previous_threshold', 'new_threshold', 'approved_by'],
+            properties: {
+              sku: { type: 'string' },
+              item_name: { type: 'string' },
+              previous_threshold: { type: 'integer' },
+              new_threshold: { type: 'integer' },
+              approved_by: { type: 'string' },
+            },
+          },
+          null,
+          2
+        )
+      );
+    } else if (presetKey === 'supplier') {
+      setName('Supplier PO Batch Ingestion');
+      setPrompt('Extract all pending purchase orders from the procurement frameset and dispatch structured JSON to our webhook endpoint.');
+      setSourceUrl('http://localhost:8080');
+      setDestinationType('webhook');
+      setWebhookUrl('https://webhook.site/mock-target');
+      setScheduleHuman('Hourly at :00');
+      setIsWriteAction(false);
+      setSchemaText(
+        JSON.stringify(
+          {
+            type: 'object',
+            required: ['po_batch_id', 'items', 'total_po_value'],
+            properties: {
+              po_batch_id: { type: 'string' },
+              vendor: { type: 'string' },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['po_number', 'vendor', 'amount', 'status'],
+                  properties: {
+                    po_number: { type: 'string' },
+                    vendor: { type: 'string' },
+                    amount: { type: 'number' },
+                    status: { type: 'string' },
+                  },
+                },
+              },
+              total_po_value: { type: 'number' },
+            },
+          },
+          null,
+          2
+        )
+      );
+    }
+  };
+
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(schemaText);
+      setSchemaText(JSON.stringify(parsed, null, 2));
+      setError(null);
+    } catch {
+      setError('Invalid JSON: Cannot format. Please correct syntax.');
+    }
   };
 
   const handleSaveOrRun = async (shouldRunImmediately: boolean) => {
@@ -89,6 +200,12 @@ export function TaskBuilder() {
       return;
     }
 
+    const destinationConfig: Record<string, string> = {};
+    if (destinationType === 'slack') destinationConfig.slackChannel = slackChannel;
+    if (destinationType === 'sheets') destinationConfig.sheetName = sheetName;
+    if (destinationType === 'webhook') destinationConfig.webhookUrl = webhookUrl;
+    if (destinationType === 'postgres') destinationConfig.targetTable = targetTable;
+
     try {
       setLoading(true);
       const res = await fetch('/api/tasks', {
@@ -99,7 +216,7 @@ export function TaskBuilder() {
           prompt,
           sourceUrl,
           destinationType,
-          destinationConfig: { slackChannel },
+          destinationConfig,
           expectedSchema: parsedSchema,
           scheduleHuman,
           isWriteAction,
@@ -144,14 +261,34 @@ export function TaskBuilder() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={loadSampleTask}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-semibold transition border border-teal-500/30 shadow-sm"
-        >
-          <Sparkles className="w-4 h-4 text-teal-400" />
-          <span>Load Acme ERP Demo Preset</span>
-        </button>
+        {/* Template Selector Pills */}
+        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+          <span className="text-xs text-slate-400 font-mono hidden lg:inline">Templates:</span>
+          <button
+            type="button"
+            onClick={() => loadPreset('sales')}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-semibold transition border border-teal-500/30"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+            <span>Acme Q3 Sales</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => loadPreset('reorder')}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold transition border border-amber-500/30"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>Approval Write Gate</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => loadPreset('supplier')}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold transition border border-indigo-500/30"
+          >
+            <Zap className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Supplier Ingest</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -231,21 +368,85 @@ export function TaskBuilder() {
                 >
                   <option value="slack">Slack Channel Webhook</option>
                   <option value="sheets">Google Sheets (Service Account)</option>
+                  <option value="webhook">Custom Webhook Endpoint (REST)</option>
+                  <option value="postgres">PostgreSQL / Supabase Database</option>
                   <option value="csv">Direct CSV / JSON Download</option>
                 </select>
               </div>
 
+              {/* Dynamic Contextual Destination Config Field */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                  Destination Target Channel / Name
-                </label>
-                <input
-                  type="text"
-                  value={slackChannel}
-                  onChange={(e) => setSlackChannel(e.target.value)}
-                  placeholder="#ops-reports"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
-                />
+                {destinationType === 'slack' && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Slack Channel Name
+                    </label>
+                    <input
+                      type="text"
+                      value={slackChannel}
+                      onChange={(e) => setSlackChannel(e.target.value)}
+                      placeholder="#ops-reports"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
+                    />
+                  </>
+                )}
+
+                {destinationType === 'sheets' && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Spreadsheet Tab / Name
+                    </label>
+                    <input
+                      type="text"
+                      value={sheetName}
+                      onChange={(e) => setSheetName(e.target.value)}
+                      placeholder="Q3_Sales_Master"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
+                    />
+                  </>
+                )}
+
+                {destinationType === 'webhook' && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Target Webhook URL
+                    </label>
+                    <input
+                      type="url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      placeholder="https://api.yourcompany.com/v1/ingest"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition font-mono text-xs"
+                    />
+                  </>
+                )}
+
+                {destinationType === 'postgres' && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Target Table Name
+                    </label>
+                    <input
+                      type="text"
+                      value={targetTable}
+                      onChange={(e) => setTargetTable(e.target.value)}
+                      placeholder="inventory_orders"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition font-mono"
+                    />
+                  </>
+                )}
+
+                {destinationType === 'csv' && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Export Format
+                    </label>
+                    <div className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-xs text-slate-300 flex items-center justify-between">
+                      <span>RFC 4180 CSV + Raw JSON</span>
+                      <span className="text-teal-400 font-mono font-bold">READY</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -284,16 +485,27 @@ export function TaskBuilder() {
             </div>
           </div>
 
-          {/* Editable JSON Schema View */}
+          {/* Editable JSON Schema View with Format Button */}
           <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
                 <Code2 className="w-3.5 h-3.5 text-teal-400" />
                 <span>Expected Output JSON Schema (Pydantic Invariant)</span>
               </label>
-              <span className="text-[11px] text-teal-400 font-mono px-2 py-0.5 rounded bg-teal-500/10 border border-teal-500/30">
-                Pydantic v2 Compliant
-              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={formatJson}
+                  className="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 hover:text-white transition flex items-center space-x-1"
+                  title="Format and validate JSON indentation"
+                >
+                  <AlignLeft className="w-3 h-3 text-teal-400" />
+                  <span>Format JSON</span>
+                </button>
+                <span className="text-[11px] text-teal-400 font-mono px-2 py-0.5 rounded bg-teal-500/10 border border-teal-500/30">
+                  Pydantic v2 Compliant
+                </span>
+              </div>
             </div>
             <textarea
               rows={8}
@@ -325,7 +537,7 @@ export function TaskBuilder() {
               </div>
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <div className="text-slate-400 font-medium">Delivery Mode</div>
-                <div className="text-white font-semibold mt-1">Idempotent Webhook ({destinationType.toUpperCase()})</div>
+                <div className="text-white font-semibold mt-1 capitalize">Idempotent {destinationType.toUpperCase()} Adapter</div>
               </div>
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <div className="text-slate-400 font-medium">Hero REST Endpoint</div>

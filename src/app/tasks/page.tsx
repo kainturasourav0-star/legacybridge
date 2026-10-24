@@ -20,7 +20,9 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   Lock,
-  Zap
+  Zap,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Task } from '@/types';
 
@@ -33,6 +35,8 @@ export default function TaskLibraryPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [cloningId, setCloningId] = useState<string | null>(null);
+  const [copiedFeedId, setCopiedFeedId] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -76,6 +80,40 @@ export default function TaskLibraryPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleCloneTask = async (task: Task) => {
+    try {
+      setCloningId(task.id);
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${task.name} (Copy)`,
+          prompt: task.prompt,
+          sourceUrl: task.sourceUrl,
+          destinationType: task.destinationType,
+          destinationConfig: task.destinationConfig,
+          expectedSchema: task.expectedSchema,
+          scheduleHuman: task.scheduleHuman,
+          isWriteAction: task.isWriteAction,
+        }),
+      });
+      if (res.ok) {
+        await fetchTasks();
+      }
+    } catch (e) {
+      console.error('Failed to clone task:', e);
+    } finally {
+      setCloningId(null);
+    }
+  };
+
+  const handleCopyFeed = (taskId: string) => {
+    const url = `${window.location.origin}/api/feeds/${taskId}/latest`;
+    navigator.clipboard.writeText(url);
+    setCopiedFeedId(taskId);
+    setTimeout(() => setCopiedFeedId(null), 2000);
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -249,7 +287,7 @@ export default function TaskLibraryPage() {
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-slate-800/70 flex items-center justify-between gap-2">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1.5">
                   <a
                     href={`/api/feeds/${task.id}/latest`}
                     target="_blank"
@@ -259,6 +297,21 @@ export default function TaskLibraryPage() {
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
+                  <button
+                    onClick={() => handleCopyFeed(task.id)}
+                    className="p-2 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition"
+                    title="Copy API Feed URL"
+                  >
+                    {copiedFeedId === task.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => handleCloneTask(task)}
+                    disabled={cloningId === task.id}
+                    className="p-2 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-teal-400 transition"
+                    title="Clone / Duplicate Task"
+                  >
+                    <Layers className={`w-4 h-4 ${cloningId === task.id ? 'animate-pulse text-teal-400' : ''}`} />
+                  </button>
                   <button
                     onClick={() => handleDeleteTask(task.id)}
                     disabled={deletingId === task.id}
