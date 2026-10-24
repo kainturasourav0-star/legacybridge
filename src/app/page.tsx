@@ -3,221 +3,51 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  AlertTriangle,
   ArrowRight,
   ArrowUpRight,
+  BookOpen,
+  Boxes,
   Braces,
-  Building2,
-  CalendarClock,
   Check,
   CheckCircle2,
-  ChevronDown,
+  ChevronRight,
   CircleDot,
-  Clock3,
-  Cloud,
   Code2,
   Copy,
   Database,
-  Download,
-  Factory,
-  FileCheck2,
-  Fingerprint,
-  Fish,
+  FileCode2,
+  FileSearch,
+  FileText,
+  GitBranch,
   Globe2,
-  Hash,
-  KeyRound,
   Layers3,
-  Link2,
-  ListChecks,
   Loader2,
   LockKeyhole,
   Menu,
-  MousePointer2,
+  MessageSquare,
   Network,
   Play,
-  Radio,
-  ScrollText,
+  Plus,
+  Route,
+  Search,
+  Server,
   ShieldCheck,
   Sparkles,
-  Table2,
-  Webhook,
+  TestTube2,
   X,
-  Zap,
-  LayoutDashboard,
-  ExternalLink,
 } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 
-type PresetKey = 'operations' | 'it' | 'saas' | 'manufacturing';
-
-interface PresetData {
-  id: PresetKey;
-  taskName: string;
-  prompt: string;
-  destination: string;
-  schedule: string;
-  resultTitle: string;
-  columns: Array<{ key: string; label: string }>;
-  rows: Array<Record<string, string>>;
-  runId: string;
-  nonce?: number;
-}
-
-const presets: Record<PresetKey, PresetData> = {
-  operations: {
-    id: 'operations',
-    taskName: 'Morning inventory pull',
-    prompt: 'Open the inventory portal, pull Q3 sales by region and post the table to #ops-reports.',
-    destination: 'Slack',
-    schedule: 'Daily at 07:30',
-    resultTitle: 'Q3 sales by region',
-    columns: [
-      { key: 'region', label: 'Region' },
-      { key: 'units', label: 'Units' },
-      { key: 'change', label: 'vs. Q2' },
-    ],
-    rows: [
-      { region: 'North', units: '1,240', change: '+12.4%' },
-      { region: 'South', units: '980', change: '+8.1%' },
-      { region: 'West', units: '1,105', change: '+10.7%' },
-    ],
-    runId: 'LB-2048',
-  },
-  it: {
-    id: 'it',
-    taskName: 'Vendor invoice check',
-    prompt: 'Sign in to the finance portal, find unpaid vendor invoices due this week and send them to the finance sheet.',
-    destination: 'Google Sheets',
-    schedule: 'Every Monday at 09:00',
-    resultTitle: 'Invoices due this week',
-    columns: [
-      { key: 'invoice', label: 'Invoice' },
-      { key: 'vendor', label: 'Vendor' },
-      { key: 'amount', label: 'Amount' },
-    ],
-    rows: [
-      { invoice: 'INV-1048', vendor: 'Apex Freight', amount: '$4,820' },
-      { invoice: 'INV-1051', vendor: 'Northstar Co.', amount: '$2,140' },
-      { invoice: 'INV-1057', vendor: 'Orion Supplies', amount: '$3,690' },
-    ],
-    runId: 'LB-2051',
-  },
-  saas: {
-    id: 'saas',
-    taskName: 'Customer workspace sync',
-    prompt: 'Open the customer admin console, collect active workspaces and seat counts, then send structured data to our webhook.',
-    destination: 'Webhook',
-    schedule: 'Every 6 hours',
-    resultTitle: 'Active customer workspaces',
-    columns: [
-      { key: 'account', label: 'Account' },
-      { key: 'plan', label: 'Plan' },
-      { key: 'seats', label: 'Seats' },
-    ],
-    rows: [
-      { account: 'Acme Logistics', plan: 'Business', seats: '48' },
-      { account: 'Bright Labs', plan: 'Scale', seats: '126' },
-      { account: 'Commonwealth', plan: 'Business', seats: '64' },
-    ],
-    runId: 'LB-2054',
-  },
-  manufacturing: {
-    id: 'manufacturing',
-    taskName: 'Plant 04 stock check',
-    prompt: 'Read available stock for Plant 04 from the ERP, compare it with the safety threshold and post the exceptions to SQL.',
-    destination: 'PostgreSQL',
-    schedule: 'Daily at 06:45',
-    resultTitle: 'Plant 04 stock exceptions',
-    columns: [
-      { key: 'material', label: 'Material' },
-      { key: 'available', label: 'Available' },
-      { key: 'threshold', label: 'Threshold' },
-    ],
-    rows: [
-      { material: 'AL-204 · Coil', available: '180 kg', threshold: '240 kg' },
-      { material: 'BR-118 · Bearing', available: '42 units', threshold: '60 units' },
-      { material: 'PK-032 · Resin', available: '95 kg', threshold: '120 kg' },
-    ],
-    runId: 'LB-2057',
-  },
-};
-
-const destinationMeta: Record<string, { icon: typeof Hash }> = {
-  Slack: { icon: Hash },
-  'Google Sheets': { icon: Table2 },
-  Webhook: { icon: Webhook },
-  PostgreSQL: { icon: Database },
-};
-
-const destinationTargets: Record<string, Record<string, string>> = {
-  operations: {
-    Slack: '#ops-reports',
-    'Google Sheets': 'Operations / Q3 sales',
-    Webhook: 'ops-data / inventory',
-    PostgreSQL: 'ops.q3_sales',
-  },
-  it: {
-    Slack: '#finance-ops',
-    'Google Sheets': 'Finance / Invoice monitor',
-    Webhook: 'finance-data / invoices',
-    PostgreSQL: 'finance.vendor_invoices',
-  },
-  saas: {
-    Slack: '#customer-sync',
-    'Google Sheets': 'Customers / Workspace sync',
-    Webhook: 'customer-data / workspaces',
-    PostgreSQL: 'customers.workspaces',
-  },
-  manufacturing: {
-    Slack: '#plant-04',
-    'Google Sheets': 'Plant 04 / Stock exceptions',
-    Webhook: 'plant-data / exceptions',
-    PostgreSQL: 'ops.inventory_exceptions',
-  },
-};
-
-const useCases = [
-  {
-    id: 'operations' as PresetKey,
-    label: 'Operations',
-    icon: ListChecks,
-    eyebrow: 'THE MORNING REPORT, WITHOUT THE MORNING ROUTINE',
-    title: 'Start the shift with answers, not another export.',
-    description: 'Turn repetitive portal checks into scheduled feeds that arrive in Slack or Sheets before your team asks for them.',
-    before: 'Someone opens the ERP, copies figures and rebuilds the same spreadsheet every morning.',
-    after: 'A validated report lands in the team channel on schedule, with a complete run trail.',
-  },
-  {
-    id: 'it' as PresetKey,
-    label: 'IT & integration',
-    icon: Network,
-    eyebrow: 'INTEGRATE WITHOUT ANOTHER CUSTOM CONNECTOR',
-    title: 'Give every old system a modern interface.',
-    description: 'Describe the outcome once instead of scoping months of API work or maintaining another fragile browser script.',
-    before: 'Every portal becomes a new integration project, with selectors and edge cases to maintain.',
-    after: 'One plain-English task creates a repeatable, schema-checked data flow.',
-  },
-  {
-    id: 'saas' as PresetKey,
-    label: 'B2B SaaS',
-    icon: Layers3,
-    eyebrow: 'MEET CUSTOMERS INSIDE THEIR EXISTING STACK',
-    title: 'Connect to your customer’s systems on day one.',
-    description: 'Reach customer portals that were never designed for integration, without putting a bespoke connector on your roadmap.',
-    before: 'Each customer’s legacy tool creates another engineering workstream and delays onboarding.',
-    after: 'Customer data reaches your product as clean JSON through a controlled browser agent.',
-  },
-  {
-    id: 'manufacturing' as PresetKey,
-    label: 'Manufacturing',
-    icon: Factory,
-    eyebrow: 'THE ERP CAN STAY. THE COPY-PASTE CAN GO.',
-    title: 'Make critical operational data move at modern speed.',
-    description: 'Pull stock, production and procurement data from the screens your plant already trusts, then route it to the tools that need it.',
-    before: 'Stock exceptions wait for someone to notice them inside a fifteen-year-old interface.',
-    after: 'The right rows are extracted, validated and written to your operational database automatically.',
-  },
+const navItems = [
+  ['Product', '#product'],
+  ['Method', '#method'],
+  ['Security', '#security'],
+  ['Research', '#research'],
+  ['Roadmap', '#roadmap'],
 ];
 
-function BridgeMark({ size = 28 }: { size?: number }) {
+function BridgeMark({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
       <path
@@ -233,9 +63,23 @@ function BridgeMark({ size = 28 }: { size?: number }) {
   );
 }
 
+function Logo({ footer = false }: { footer?: boolean }) {
+  return (
+    <Link className={`ax-logo ${footer ? 'ax-logo-footer' : ''}`} href="/" aria-label="LegacyBridge home">
+      <span>
+        <BridgeMark size={footer ? 25 : 22} />
+      </span>
+      <strong>LegacyBridge</strong>
+    </Link>
+  );
+}
+
 function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const isClerkEnabled = typeof window !== 'undefined'
+    ? !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('placeholder')
+    : !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -254,257 +98,239 @@ function Navbar() {
   const close = () => setOpen(false);
 
   return (
-    <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
-      <nav className="nav-shell" aria-label="Main navigation">
-        <a className="brand" href="#top" onClick={close} aria-label="LegacyBridge home">
-          <span className="brand-mark">
-            <BridgeMark />
-          </span>
-          <span>LegacyBridge</span>
-        </a>
-
-        <div className="nav-links">
-          <a href="#product">Product</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="#security">Reliability</a>
-          <a href="#use-cases">Use cases</a>
-        </div>
-
-        <div className="nav-actions">
-          <a
-            href="http://localhost:8080"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#8a8f98] hover:text-white transition-colors"
-          >
-            <span>Acme ERP (:8080)</span>
-            <ExternalLink size={12} />
+    <header className={`ax-navbar ${scrolled ? 'is-scrolled' : ''}`}>
+      <Logo />
+      <nav className="ax-nav-pill" aria-label="Main navigation">
+        {navItems.map(([label, href]) => (
+          <a key={label} href={href}>
+            {label}
           </a>
-          <a className="nav-demo-link" href="#demo">
-            Interactive demo
-          </a>
-          <Link className="button button-small button-light" href="/dashboard">
-            Launch Console <ArrowUpRight size={14} />
-          </Link>
-        </div>
-
-        <button
-          className="menu-toggle"
-          onClick={() => setOpen(!open)}
-          aria-expanded={open}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-        >
-          {open ? <X size={21} /> : <Menu size={21} />}
-        </button>
+        ))}
       </nav>
-
-      <div className={`mobile-menu ${open ? 'is-open' : ''}`}>
-        <a href="#product" onClick={close}>
-          Product <ArrowRight size={17} />
-        </a>
-        <a href="#how-it-works" onClick={close}>
-          How it works <ArrowRight size={17} />
-        </a>
-        <a href="#security" onClick={close}>
-          Reliability <ArrowRight size={17} />
-        </a>
-        <a href="#use-cases" onClick={close}>
-          Use cases <ArrowRight size={17} />
-        </a>
-        <a
-          href="http://localhost:8080"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={close}
-        >
-          Acme ERP Demo (:8080) <ExternalLink size={15} />
-        </a>
-        <Link className="button button-primary" href="/dashboard" onClick={close}>
-          Launch Operations Console <ArrowRight size={16} />
+      <div className="ax-nav-auth">
+        {isClerkEnabled ? (
+          <>
+            <SignedIn>
+              <div className="flex items-center space-x-3">
+                <Link href="/dashboard" className="text-xs text-[#8b8d92] hover:text-white transition">
+                  Console
+                </Link>
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="text-xs text-[#8b8d92] hover:text-white transition cursor-pointer">Log in</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="ax-signup cursor-pointer">Sign up</button>
+              </SignUpButton>
+            </SignedOut>
+          </>
+        ) : (
+          <>
+            <Link href="/dashboard" className="text-xs text-[#8b8d92] hover:text-white transition">
+              Log in
+            </Link>
+            <Link className="ax-signup" href="/dashboard">
+              Console
+            </Link>
+          </>
+        )}
+      </div>
+      <button
+        className="ax-menu-button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-label={open ? 'Close menu' : 'Open menu'}
+      >
+        {open ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      <div className={`ax-mobile-menu ${open ? 'is-open' : ''}`} aria-hidden={!open}>
+        {navItems.map(([label, href]) => (
+          <a key={label} href={href} onClick={close}>
+            {label}
+            <ArrowRight size={15} />
+          </a>
+        ))}
+        <Link href="/dashboard" onClick={close}>
+          Launch Console
+          <ArrowRight size={15} />
+        </Link>
+        <Link className="ax-mobile-signup" href="/drift" onClick={close}>
+          Drift Detector
+          <ArrowUpRight size={15} />
         </Link>
       </div>
     </header>
   );
 }
 
-function HeroProduct() {
-  const cardRef = useRef<HTMLDivElement>(null);
+function ProductMockup() {
+  const card = useRef<HTMLDivElement>(null);
 
-  const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const rect = cardRef.current.getBoundingClientRect();
+  const move = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!card.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rect = card.current.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
-    cardRef.current.style.transform = `rotateX(${12 - y * 2}deg) rotateY(${x * 1.8}deg) translateZ(0)`;
+    card.current.style.setProperty('--ax-ry', `${x * 1.4}deg`);
   };
 
+  const leave = () => card.current?.style.setProperty('--ax-ry', '0deg');
+
   return (
-    <div
-      className="hero-product-stage reveal"
-      onMouseMove={handleMove}
-      onMouseLeave={() => cardRef.current && (cardRef.current.style.transform = '')}
-    >
-      <div className="hero-beam" />
-      <div className="product-window hero-product axis-dashboard" ref={cardRef}>
-        <div className="window-chrome">
-          <div className="window-dots">
-            <span />
-            <span />
-            <span />
+    <div className="ax-product-stage" onMouseMove={move} onMouseLeave={leave}>
+      <div className="ax-product-window" ref={card}>
+        <div className="ax-window-top">
+          <span className="ax-window-dots">
+            <i />
+            <i />
+            <i />
+          </span>
+          <div className="ax-window-address">
+            <LockKeyhole size={9} /> legacybridge <em>/</em> overview
           </div>
-          <div className="window-address">
-            <BridgeMark size={12} /> legacybridge<span>/overview</span>
-          </div>
-          <div className="live-pill">
-            <span /> LIVE
-          </div>
+          <span className="ax-sample-pill">
+            <i /> SAMPLE ERP
+          </span>
         </div>
-        <div className="axis-dash-layout">
-          <aside className="axis-dash-sidebar">
-            <div className="axis-dash-nav active">
-              <Layers3 size={14} /> Overview
-            </div>
-            <Link href="/tasks" className="axis-dash-nav hover:text-white">
-              <Play size={14} /> Tasks <span>12</span>
+        <div className="ax-window-body">
+          <aside className="ax-mock-sidebar">
+            <Link href="/dashboard" className="active flex items-center gap-1.5 hover:text-white transition">
+              <Layers3 size={12} /> Overview
             </Link>
-            <Link href="/runs" className="axis-dash-nav hover:text-white">
-              <Radio size={14} /> Run history
+            <Link href="/analysis" className="flex items-center gap-1.5 hover:text-white transition">
+              <FileSearch size={12} /> Discovery
             </Link>
-            <Link href="/settings" className="axis-dash-nav hover:text-white">
-              <Link2 size={14} /> Destinations
+            <Link href="/business-logic" className="flex items-center gap-1.5 hover:text-white transition">
+              <Braces size={12} /> Business rules <span>24</span>
             </Link>
-            <Link href="/settings" className="axis-dash-nav hover:text-white">
-              <KeyRound size={14} /> Vault
+            <Link href="/migration" className="flex items-center gap-1.5 hover:text-white transition">
+              <Route size={12} /> Migration
             </Link>
-            <div className="axis-dash-sidebar-label">WORKSPACE</div>
-            <div className="axis-dash-task">
-              <i className="green" /> Morning inventory
-            </div>
-            <div className="axis-dash-task">
-              <i /> Vendor invoices
-            </div>
-            <div className="axis-dash-task">
-              <i /> Plant 04 stock
-            </div>
-            <div className="axis-system-status">
+            <Link href="/drift" className="flex items-center gap-1.5 hover:text-white transition">
+              <ShieldCheck size={12} /> Validation <span>3</span>
+            </Link>
+            <small>WORKSPACE</small>
+            <p>
+              <i /> Order management
+            </p>
+            <div className="ax-mock-system">
               <span>
-                <i /> All systems normal
+                <i /> Active Modernization
               </span>
-              <small>4 destinations connected</small>
+              <small>Acme Monolith ERP</small>
             </div>
           </aside>
-          <main className="axis-dash-main">
-            <div className="axis-dash-grid-bg" />
-            <div className="axis-metric-top">
-              <span>RUN RELIABILITY</span>
+          <main className="ax-mock-main">
+            <div className="ax-mock-heading">
               <div>
-                <span className="active">Validated</span>
-                <span>Completed</span>
+                <span>DEPENDENCY INTELLIGENCE</span>
+                <strong>
+                  38 <em>relationships</em>
+                </strong>
+              </div>
+              <div className="ax-mock-tabs">
+                <span className="active">Source map</span>
+                <span>Rules</span>
               </div>
             </div>
-            <div className="axis-metric-value">
-              99.2<span>%</span>
-              <em>+4.8%</em>
-            </div>
-            <div className="axis-chart-wrap">
-              <svg viewBox="0 0 800 190" preserveAspectRatio="none" aria-hidden="true">
+            <div className="ax-mock-chart">
+              <svg viewBox="0 0 760 200" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
-                  <linearGradient id="axisArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6874e8" stopOpacity=".24" />
-                    <stop offset="100%" stopColor="#6874e8" stopOpacity="0" />
+                  <linearGradient id="axArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#7379ec" stopOpacity=".22" />
+                    <stop offset="1" stopColor="#7379ec" stopOpacity="0" />
                   </linearGradient>
-                  <linearGradient id="axisLine" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#4c56b8" />
-                    <stop offset="55%" stopColor="#8b95ff" />
-                    <stop offset="100%" stopColor="#5E6AD2" />
+                  <linearGradient id="axLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop stopColor="#434a98" />
+                    <stop offset=".55" stopColor="#9299ff" />
+                    <stop offset="1" stopColor="#656ee0" />
                   </linearGradient>
                 </defs>
-                <g className="axis-chart-lines">
-                  <path d="M0 30H800M0 80H800M0 130H800M0 180H800" />
+                <g className="ax-chart-grid">
+                  <path d="M0 35H760M0 90H760M0 145H760M0 195H760" />
                 </g>
                 <path
-                  className="axis-chart-area"
-                  d="M0 151 C70 145 105 118 155 126 S250 152 302 112 S390 50 445 71 S525 128 585 91 S678 61 726 68 S772 52 800 45 L800 190 L0 190 Z"
+                  className="ax-chart-area"
+                  d="M0 165 C80 155 115 128 170 139 S270 160 330 117 S430 51 490 78 S585 127 645 93 S720 61 760 69 L760 200 L0 200Z"
                 />
                 <path
-                  className="axis-chart-path"
-                  d="M0 151 C70 145 105 118 155 126 S250 152 302 112 S390 50 445 71 S525 128 585 91 S678 61 726 68 S772 52 800 45"
+                  className="ax-chart-line"
+                  d="M0 165 C80 155 115 128 170 139 S270 160 330 117 S430 51 490 78 S585 127 645 93 S720 61 760 69"
                 />
-                <circle cx="445" cy="71" r="4" className="axis-chart-point" />
+                <circle cx="490" cy="78" r="4" className="ax-chart-point" />
               </svg>
-              <div className="axis-chart-tooltip">99.2% valid</div>
+              <div className="ax-chart-tooltip">COUPLING: 0.88 (HOTSPOT)</div>
             </div>
-            <div className="axis-priority-head">
-              <span>ACTIVE TASKS</span>
-              <Link href="/dashboard" className="text-[10px] text-[#8b95ff] hover:underline">
-                View all
+            <div className="ax-mock-priority">
+              <span>BUSINESS RULE REVIEW</span>
+              <Link href="/business-logic" className="hover:text-white transition">
+                View all →
               </Link>
             </div>
-            <div className="axis-priority-list">
-              <div className="axis-priority-row">
-                <span className="axis-row-icon purple">
-                  <Play size={11} />
+            <div className="ax-mock-rows">
+              <Link href="/drift" className="hover:bg-white/[0.03] transition block">
+                <span className="ax-row-icon red">
+                  <AlertTriangle size={10} />
                 </span>
-                <code>LB-2048</code>
-                <strong>Morning inventory pull</strong>
-                <span className="axis-row-tag">Daily 07:30</span>
-                <span className="axis-row-avatar">OP</span>
-              </div>
-              <div className="axis-priority-row">
-                <span className="axis-row-icon green">
-                  <Check size={11} />
+                <code>BR-001</code>
+                <strong>Insufficient inventory guard</strong>
+                <span className="ax-row-tag red">Drift risk</span>
+                <span className="ax-row-avatar">OR</span>
+              </Link>
+              <Link href="/business-logic" className="hover:bg-white/[0.03] transition block">
+                <span className="ax-row-icon violet">
+                  <Sparkles size={10} />
                 </span>
-                <code>LB-2044</code>
-                <strong>Vendor invoice sync</strong>
-                <span className="axis-row-tag">Validated</span>
-                <span className="axis-row-avatar">FI</span>
-              </div>
-              <div className="axis-priority-row">
-                <span className="axis-row-icon yellow">
-                  <Clock3 size={11} />
+                <code>BR-002</code>
+                <strong>High-value order approval</strong>
+                <span className="ax-row-tag">Review</span>
+                <span className="ax-row-avatar">AI</span>
+              </Link>
+              <Link href="/business-logic" className="hover:bg-white/[0.03] transition block">
+                <span className="ax-row-icon green">
+                  <Check size={10} />
                 </span>
-                <code>LB-2039</code>
-                <strong>Plant 04 stock check</strong>
-                <span className="axis-row-tag">Scheduled</span>
-                <span className="axis-row-avatar">MFG</span>
-              </div>
+                <code>BR-003</code>
+                <strong>Stock reservation window</strong>
+                <span className="ax-row-tag green">Source-linked</span>
+                <span className="ax-row-avatar">IN</span>
+              </Link>
             </div>
           </main>
         </div>
-        <div className="axis-command-palette">
-          <div>
-            <Sparkles size={14} />
-            <span>Search tasks, runs, and destinations…</span>
-            <kbd>⌘ K</kbd>
-          </div>
-          <p>
-            <span>↵</span> Create a new LegacyBridge task
-          </p>
+        <div className="ax-mock-search">
+          <Search size={12} />
+          <span>Search rules, services, and evidence…</span>
+          <kbd>⌘ K</kbd>
+          <Link href="/migration" className="ml-auto text-[#8b95ff] hover:underline flex items-center gap-1">
+            <span>↵</span> Create migration review
+          </Link>
         </div>
-        <div className="axis-agent-insight">
+        <div className="ax-mock-insight">
           <span>
-            <Sparkles size={12} /> AGENT INSIGHT
+            <Sparkles size={10} /> RESEARCH INSIGHT
           </span>
-          <p>Table structure detected. Three fields mapped to your output schema.</p>
+          <p>Official documentation linked for the selected framework version.</p>
           <div>
-            <strong>Suggested action</strong>
-            <em>
-              Validate output <ArrowRight size={10} />
-            </em>
+            <strong>TinyFish Verified Citation</strong>
+            <Link href="/research" className="flex items-center gap-1 hover:text-[#8b95ff] transition">
+              Review source <ArrowRight size={9} />
+            </Link>
           </div>
         </div>
-        <div className="axis-delivery-float">
+        <div className="ax-mock-deploy">
           <span>
-            <CheckCircle2 size={13} /> Delivered
+            <CheckCircle2 size={11} /> Human review
           </span>
-          <strong>#ops-reports</strong>
+          <strong>Migration plan</strong>
           <div>
-            <i style={{ width: '100%' }} />
+            <i />
           </div>
-          <small>Slack · just now</small>
+          <small>Awaiting approval · Gate Active</small>
         </div>
-        <div className="axis-cursor">
-          <MousePointer2 size={17} fill="currentColor" />
+        <div className="ax-mock-cursor">
           <span>LegacyBridge</span>
         </div>
       </div>
@@ -514,1236 +340,958 @@ function HeroProduct() {
 
 function Hero() {
   return (
-    <section className="hero" id="top">
-      <div className="hero-grid" />
-      <div className="hero-aurora" />
-      <div className="axis-particles" aria-hidden="true">
-        {Array.from({ length: 38 }, (_, index) => (
+    <section className="ax-hero" id="top">
+      <div className="ax-hero-grid" />
+      <div className="ax-hero-beam" />
+      <div className="ax-hero-particles" aria-hidden="true">
+        {Array.from({ length: 28 }, (_, index) => (
           <i
             key={index}
             style={
               {
-                '--x': `${(index * 37) % 100}%`,
-                '--delay': `${-(index % 13) * 0.41}s`,
-                '--duration': `${3.2 + (index % 6) * 0.55}s`,
+                '--x': `${44 + ((index * 17) % 15)}%`,
+                '--y': `${8 + ((index * 29) % 64)}%`,
+                '--d': `${-(index % 9) * 0.47}s`,
               } as React.CSSProperties
             }
           />
         ))}
       </div>
-      <div className="container hero-content">
-        <h1 className="reveal">
+      <div className="ax-hero-copy">
+        <h1>
           The new standard for
           <br />
-          <span>legacy integration</span>
+          <span>legacy modernization</span>
         </h1>
-        <p className="hero-subtitle reveal reveal-delay-1">
-          Describe the task in plain English. Turn any legacy portal into a validated, scheduled data
-          feed — no API required.
+        <p>
+          Meet the system for intelligent legacy modernization. Understand business rules, plan service boundaries,
+          and validate behavior before breaking monoliths.
         </p>
-        <div className="hero-actions reveal reveal-delay-2">
-          <a className="button button-primary button-large" href="#demo">
-            Start bridging <ArrowRight size={16} />
-          </a>
-          <Link className="axis-hero-secondary" href="/dashboard">
-            Launch Operations Console <ArrowRight size={13} />
+        <div className="ax-hero-actions">
+          <Link className="ax-primary-cta" href="/dashboard">
+            Start building <ArrowRight size={15} />
+          </Link>
+          <Link className="ax-secondary-cta" href="/drift">
+            New: Business Logic Drift Detector <ChevronRight size={12} />
           </Link>
         </div>
       </div>
-      <div className="container hero-visual">
-        <HeroProduct />
-      </div>
+      <ProductMockup />
+      <div className="ax-hero-fade" />
     </section>
   );
 }
 
-function IntegrationStrip() {
-  const top = [
-    { name: 'Slack', icon: Hash },
-    { name: 'Google Sheets', icon: Table2 },
-    { name: 'PostgreSQL', icon: Database },
-    { name: 'Webhooks', icon: Webhook },
-    { name: 'TinyFish', icon: Fish },
-    { name: 'JSON', icon: Braces },
-  ];
-  const bottom = [
-    { name: 'Legacy ERP', icon: Building2 },
-    { name: 'Cloud Browser', icon: Cloud },
-    { name: 'FastAPI', icon: Code2 },
-    { name: 'SQL', icon: Database },
-    { name: 'Vault', icon: KeyRound },
-    { name: 'Web Agent', icon: Globe2 },
-  ];
+const techTop = ['Next.js', 'TinyFish', 'Supabase', 'Clerk'];
+const techBottom = ['Vercel', 'PostgreSQL', 'GitHub Actions', 'Docker'];
 
-  const LogoRow = ({
-    items,
-    reverse = false,
-  }: {
-    items: Array<{ name: string; icon: typeof Hash }>;
-    reverse?: boolean;
-  }) => (
-    <div className="axis-logo-viewport">
-      <div className={`axis-logo-track ${reverse ? 'reverse' : ''}`}>
-        {[...items, ...items, ...items].map(({ name, icon: Icon }, index) => (
-          <div className="axis-client-logo" key={`${name}-${index}`}>
-            <Icon size={19} />
-            <span>{name}</span>
+function TechRow({ items, reverse = false }: { items: string[]; reverse?: boolean }) {
+  return (
+    <div className="ax-tech-viewport">
+      <div className={`ax-tech-track ${reverse ? 'reverse' : ''}`}>
+        {[...items, ...items, ...items].map((item, index) => (
+          <div className="ax-tech-logo" aria-hidden={index >= items.length} key={`${item}-${index}`}>
+            <span className="ax-tech-symbol">{item.charAt(0)}</span>
+            {item}
           </div>
         ))}
       </div>
     </div>
   );
+}
 
+function TechStrip() {
   return (
-    <section className="axis-clients" aria-label="Destinations and technology">
-      <div className="axis-clients-header reveal">
-        <h2>One bridge between old portals and modern tools.</h2>
-        <p>From the systems you have to the destinations your team already uses.</p>
+    <section className="ax-tech-strip">
+      <div className="ax-tech-heading ax-reveal">
+        <span>PROPOSED TECHNOLOGY STACK</span>
+        <h2>Built for the modern modernization stack.</h2>
+        <p>Specific responsibilities. No unverified integration claims.</p>
       </div>
-      <LogoRow items={top} />
-      <LogoRow items={bottom} reverse />
+      <TechRow items={techTop} />
+      <TechRow items={techBottom} reverse />
     </section>
   );
 }
 
-function ProblemSection() {
+const features = [
+  {
+    title: 'Purpose-built for legacy intelligence',
+    type: 'code',
+    note: 'Recover candidate rules and dependencies with AST evidence.',
+  },
+  {
+    title: 'Designed to expose drift',
+    type: 'speed',
+    note: 'Compare business decisions, not only syntax, using reverse regression suites.',
+  },
+  {
+    title: 'Crafted for human approval',
+    type: 'craft',
+    note: 'Keep architecture and migration decisions reviewable with cryptographic audit logs.',
+  },
+];
+
+function FeatureCard({
+  title,
+  type,
+  note,
+  index,
+}: {
+  title: string;
+  type: string;
+  note: string;
+  index: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <section className="axis-features" id="product">
-      <div className="axis-feature-header reveal">
-        <h2>
-          Made for the systems
-          <br />
-          you can’t replace
-        </h2>
-        <div>
-          <p>
-            LegacyBridge is shaped by a simple idea: automation should adapt to your business — not
-            force your business to rebuild around it.
-          </p>
-          <a href="#how-it-works">
-            Explore the method <ArrowRight size={14} />
-          </a>
-        </div>
-      </div>
-      <div className="axis-feature-grid">
-        <article className="axis-feature-card reveal">
-          <div className="axis-feature-visual axis-layers-visual">
-            <div className="axis-layer axis-layer-back">
-              <span>legacy_portal.exe</span>
-            </div>
-            <div className="axis-layer axis-layer-mid">
-              <span>agent_goal.json</span>
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="axis-layer axis-layer-top">
+    <article className={`ax-feature-card ax-reveal ax-delay-${index + 1}`}>
+      <div className={`ax-feature-visual ax-feature-${type}`}>
+        {type === 'code' && (
+          <>
+            <div className="ax-iso-code">
               <code>
-                {'{'}
-                <br />
-                &nbsp;&nbsp;&quot;goal&quot;: &quot;extract&quot;,
-                <br />
-                &nbsp;&nbsp;&quot;format&quot;: &quot;json&quot;
-                <br />
+                <span>if</span> (inventory &lt; quantity) {'{'}<br />
+                &nbsp;&nbsp;<em>return</em> reject(<b>&quot;STOCK&quot;</b>);<br />
                 {'}'}
               </code>
+              <div>
+                <i />
+                <i />
+                <i />
+              </div>
             </div>
-            <span className="axis-floating-label label-one">Describe</span>
-            <span className="axis-floating-label label-two">Extract</span>
-            <span className="axis-floating-label label-three">Deliver</span>
-          </div>
-          <div className="axis-card-footer">
-            <h3>Purpose-built for legacy portals</h3>
-            <span className="axis-plus">+</span>
-          </div>
-        </article>
-        <article className="axis-feature-card reveal reveal-delay-1">
-          <div className="axis-feature-visual axis-speed-visual">
-            <div className="axis-speed-grid" />
-            <div className="axis-speed-lines">
+            <span className="ax-float-tag tag-a">Discover</span>
+            <span className="ax-float-tag tag-b">Understand</span>
+          </>
+        )}
+        {type === 'speed' && (
+          <>
+            <div className="ax-speed-grid" />
+            <div className="ax-speed-value">BR-001</div>
+            <div className="ax-speed-lines">
               <i />
               <i />
               <i />
               <i />
+              <i />
             </div>
-            <div className="axis-speed-value">
-              <span>
-                19<span>s</span>
-              </span>
-              <small>SIMULATED RUN</small>
+            <span className="ax-speed-status">
+              <AlertTriangle size={11} /> Decision changed
+            </span>
+          </>
+        )}
+        {type === 'craft' && (
+          <>
+            <div className="ax-craft-grid" />
+            <div className="ax-craft-button">
+              <CheckCircle2 size={13} /> Review
             </div>
-            <div className="axis-speed-caption">
-              <Zap size={13} /> Prompt to validated data
-            </div>
-          </div>
-          <div className="axis-card-footer">
-            <h3>Designed to move fast</h3>
-            <span className="axis-plus">+</span>
-          </div>
-        </article>
-        <article className="axis-feature-card reveal reveal-delay-2">
-          <div className="axis-feature-visual axis-craft-visual">
-            <div className="axis-craft-grid" />
-            <div className="axis-craft-shadow" />
-            <div className="axis-approve-3d">
-              <ShieldCheck size={18} />
-              <span>Approve</span>
-            </div>
-            <div className="axis-craft-cursor">
-              <MousePointer2 size={22} fill="currentColor" />
-              <span>You</span>
-            </div>
-            <span className="axis-guide guide-x" />
-            <span className="axis-guide guide-y" />
-          </div>
-          <div className="axis-card-footer">
-            <h3>Crafted for human control</h3>
-            <span className="axis-plus">+</span>
-          </div>
-        </article>
+            <span className="ax-guide-x" />
+            <span className="ax-guide-y" />
+            <div className="ax-craft-cursor">↖</div>
+          </>
+        )}
+        <div className="ax-feature-note" id={`ax-feature-note-${index}`} hidden={!expanded}>
+          {note}
+        </div>
+      </div>
+      <div className="ax-feature-footer">
+        <h3>{title}</h3>
+        <button
+          onClick={() => setExpanded((value) => !value)}
+          aria-label={`${expanded ? 'Hide' : 'Show'} detail for ${title}`}
+          aria-expanded={expanded}
+          aria-controls={`ax-feature-note-${index}`}
+        >
+          {expanded ? <X size={15} /> : <Plus size={15} />}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function FeatureSection() {
+  return (
+    <section className="ax-features" id="product">
+      <div className="ax-feature-heading">
+        <h2 className="ax-reveal">
+          Made for
+          <br />
+          business-critical
+          <br />
+          legacy systems
+        </h2>
+        <div className="ax-reveal ax-delay-1">
+          <p>
+            LegacyBridge is shaped by the practices that make modernization safer: visible evidence, deliberate
+            architecture, and a commitment to human control.
+          </p>
+          <a href="#method">
+            Explore the method <ChevronRight size={12} />
+          </a>
+        </div>
+      </div>
+      <div className="ax-feature-grid">
+        {features.map((feature, index) => (
+          <FeatureCard key={feature.title} {...feature} index={index} />
+        ))}
       </div>
     </section>
   );
 }
 
-function HowItWorks() {
+function DualIntelligence() {
+  const [accepted, setAccepted] = useState(false);
+  const [researched, setResearched] = useState(false);
+  const [researchQuery, setResearchQuery] = useState('framework migration');
+
   return (
-    <>
-      <section className="axis-dual-section" id="how-it-works">
-        <article className="axis-dual-panel reveal">
-          <div className="axis-dual-copy">
-            <h2>LegacyBridge Agent</h2>
-            <p>
-              Give a cloud browser a plain-English goal. It signs in securely, understands the live
-              page, and extracts what you asked for.
-            </p>
+    <section className="ax-dual" id="research">
+      <article className="ax-dual-panel ax-reveal">
+        <div className="ax-dual-copy">
+          <h3>Legacy Intelligence</h3>
+          <p>Analyze supported source code, recover candidate rules, and connect every recommendation to evidence.</p>
+        </div>
+        <div className="ax-dual-visual">
+          <div className="ax-triage-window">
+            <div className="ax-triage-top">
+              <span>
+                <Sparkles size={11} /> Boundary intelligence
+              </span>
+              <span>VERIFIED</span>
+            </div>
+            <div className="ax-triage-row">
+              <Check size={10} />
+              <span>Order module and data ownership mapped</span>
+              <small>01</small>
+            </div>
+            <div className="ax-triage-row active">
+              <GitBranch size={10} />
+              <span>Inventory coupling requires review</span>
+              <small>02</small>
+            </div>
+            <div className="ax-suggestion">
+              <strong>Why this boundary was suggested</strong>
+              <p>Order and inventory share a reservation rule. Preserve that behavior before extracting a service.</p>
+              <div>
+                <span>RECOMMENDATION</span>
+                <button onClick={() => setAccepted((value) => !value)}>
+                  {accepted ? <Check size={10} /> : <CircleDot size={10} />}
+                  {accepted ? 'Reviewed locally' : 'Mark for review'}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="axis-triage-visual">
-            <div className="axis-triage-window">
-              <div className="axis-triage-head">
-                <span>
-                  <Sparkles size={13} /> Agent plan
-                </span>
-                <span className="axis-live-tag">
-                  <i /> RUNNING
-                </span>
-              </div>
-              <div className="axis-triage-row muted">
-                <Check size={12} />
-                <span>Authenticate with Vault</span>
-                <small>0:03</small>
-              </div>
-              <div className="axis-triage-row muted">
-                <Check size={12} />
-                <span>Open Reports → Q3 Sales</span>
-                <small>0:09</small>
-              </div>
-              <div className="axis-triage-row active">
-                <MousePointer2 size={12} />
-                <span>Extract the inventory table</span>
-                <small>NOW</small>
-              </div>
-              <div className="axis-triage-row muted">
-                <ShieldCheck size={12} />
-                <span>Validate output schema</span>
-                <small>Next</small>
-              </div>
-              <div className="axis-reasoning-card">
-                <span>WHY THIS PATH?</span>
+        </div>
+      </article>
+
+      <article className="ax-dual-panel ax-reveal ax-delay-2">
+        <div className="ax-dual-copy">
+          <h3>TinyFish Research</h3>
+          <p>Research official documentation and return source-linked findings—without inspecting confidential source code.</p>
+        </div>
+        <div className="ax-dual-visual">
+          <pre className="ax-research-code">
+            {JSON.stringify(
+              {
+                query: researchQuery,
+                sources: 'official_docs',
+                confidential_source: false,
+                status: researched ? 'completed_live' : 'ready',
+              },
+              null,
+              2
+            )}
+          </pre>
+          <div className="ax-research-box">
+            <div>
+              <BookOpen size={12} />
+              <span>FastAPI / Express Official Guide</span>
+              <em>fastapi.tiangolo.com</em>
+            </div>
+            <p aria-live="polite">
+              {researched
+                ? 'TinyFish verified official migration: Pydantic v2 migration & schema decoupling.'
+                : 'Review documented breaking changes and migration paths for the selected target.'}
+            </p>
+            <div className="ax-research-input">
+              <input
+                type="text"
+                value={researchQuery}
+                onChange={(e) => setResearchQuery(e.target.value)}
+                placeholder="Ask about a migration…"
+                className="bg-transparent text-xs text-white outline-none flex-1"
+              />
+              <button
+                onClick={() => setResearched(true)}
+                aria-label="Preview research finding"
+                aria-pressed={researched}
+              >
+                <ArrowUpRight size={12} />
+              </button>
+            </div>
+            <div className="ax-research-chips">
+              <span>
+                <Copy size={9} /> Cited
+              </span>
+              <span>
+                <Globe2 size={9} /> Official docs
+              </span>
+              <Link href="/research" className="hover:text-white transition flex items-center gap-1">
+                <Sparkles size={9} /> Live Agent →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function DirectionSection() {
+  return (
+    <section className="ax-direction" id="method">
+      <div className="ax-direction-copy ax-reveal">
+        <span>
+          <i /> MONOLITH-TO-MICROSERVICES PLANNING <ChevronRight size={11} />
+        </span>
+        <h2>
+          Set the migration
+          <br />
+          direction
+        </h2>
+        <p>
+          Align your team around an editable modernization timeline. Define business ownership, plan incremental phases,
+          and preserve rollback decisions with Strangler Fig patterns.
+        </p>
+      </div>
+      <div className="ax-timeline-scene" id="roadmap" aria-hidden="true">
+        <div className="ax-timeline-plane">
+          <div className="ax-timeline-months">
+            <span>DISCOVER</span>
+            <span>UNDERSTAND</span>
+            <span>PLAN</span>
+            <span>MIGRATE</span>
+            <span>VALIDATE</span>
+          </div>
+          <div className="ax-timeline-grid" />
+          <div className="ax-timeline-bar bar-a">
+            <Route size={12} />
+            <strong>Order + Inventory</strong>
+            <small>BOUNDARY REVIEW</small>
+          </div>
+          <div className="ax-timeline-bar bar-b">
+            <Boxes size={12} />
+            <strong>Customer Service</strong>
+            <small>PROPOSED</small>
+          </div>
+          <div className="ax-timeline-bar bar-c">
+            <Server size={12} />
+            <strong>Payment Service</strong>
+            <small>PLANNED</small>
+          </div>
+          <div className="ax-timeline-widget">
+            <span>
+              MIGRATION EVIDENCE <em>REVIEW</em>
+            </span>
+            <strong>05</strong>
+            <small>connected stages</small>
+            <div>
+              {[35, 52, 44, 68, 59, 79, 70, 88].map((height, index) => (
+                <i key={index} style={{ height: `${height}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="ax-timeline-now">
+            <span>HUMAN CHECKPOINT</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const evidenceTabs = ['Rule evidence', 'Regression tests'];
+
+function EvidenceSection() {
+  const [tab, setTab] = useState('Rule evidence');
+
+  return (
+    <section className="ax-evidence">
+      <div className="ax-evidence-main">
+        <div className="ax-evidence-copy ax-reveal">
+          <h2>
+            Evidence-backed artifacts
+            <br />
+            for better decisions
+          </h2>
+          <div className="ax-evidence-tabs" role="tablist" aria-label="Evidence preview">
+            {evidenceTabs.map((item) => (
+              <button
+                key={item}
+                id={`ax-evidence-tab-${item === 'Rule evidence' ? 'rule' : 'regression'}`}
+                role="tab"
+                aria-selected={tab === item}
+                aria-controls="ax-evidence-panel"
+                className={tab === item ? 'active' : ''}
+                onClick={() => setTab(item)}
+              >
+                {item === 'Rule evidence' ? <FileCode2 size={13} /> : <TestTube2 size={13} />}
+                {item}
+              </button>
+            ))}
+          </div>
+          <p>Every inference stays distinguishable from source evidence and executed results.</p>
+        </div>
+        <div className="ax-document-wrap ax-reveal ax-delay-2">
+          <div
+            className="ax-document-window"
+            id="ax-evidence-panel"
+            role="tabpanel"
+            aria-labelledby={`ax-evidence-tab-${tab === 'Rule evidence' ? 'rule' : 'regression'}`}
+          >
+            <div className="ax-document-top">
+              <span>
+                <i />
+                <i />
+                <i />
+              </span>
+              <code>{tab === 'Rule evidence' ? 'orders_monolith.js' : 'orders.regression.test.ts'}</code>
+              <em>VERIFIED AST</em>
+            </div>
+            {tab === 'Rule evidence' ? (
+              <div className="ax-rule-document">
+                <span>BR-001 · SOURCE-LINKED</span>
+                <h3>Insufficient inventory guard</h3>
                 <p>
-                  The agent found the same table structure described in your goal — no selector or
-                  XPath required.
+                  Reject an order when <mark>available inventory</mark> is lower than the requested quantity.
                 </p>
-                <div>
-                  <span>ALTERNATIVES</span>
-                  <strong>
-                    Continue run <ArrowRight size={11} />
-                  </strong>
+                <pre>
+                  <code>
+                    if (inventory &lt; order.quantity) {'{'}<br />
+                    &nbsp;&nbsp;return reject(<b>&quot;INSUFFICIENT_STOCK&quot;</b>);<br />
+                    {'}'}<br />
+                    return confirm(order);
+                  </code>
+                </pre>
+                <div className="ax-comment">
+                  <MessageSquare size={12} />
+                  <p>
+                    <strong>Architecture review</strong>Preserve this decision in the proposed Order Service before
+                    approval.
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </article>
-        <article className="axis-dual-panel reveal reveal-delay-1">
-          <div className="axis-dual-copy">
-            <h2>Schema-validated delivery</h2>
-            <p>
-              Every result is checked against a clear contract before it reaches Slack, Sheets, a
-              webhook, or your SQL database.
-            </p>
-          </div>
-          <div className="axis-mcp-visual">
-            <pre className="axis-code-background">{`{
-  "region": "North",
-  "units": 1240,
-  "quarter": "Q3",
-  "validated": true,
-  "destination": "#ops-reports"
-}`}</pre>
-            <div className="axis-validation-chat">
-              <div className="axis-chat-title">
-                <FileCheck2 size={14} />
-                <span>Output contract</span>
-                <span>STRICT</span>
+            ) : (
+              <div className="ax-rule-document">
+                <span>GENERATED TEST · EXECUTED</span>
+                <h3>Targeted regression test</h3>
+                <p>Use the original business outcome as the expected behavior.</p>
+                <pre>
+                  <code>
+                    expect(confirmOrder({'{'} inventory: 2, quantity: 5 {'}'}))<br />
+                    &nbsp;&nbsp;.toEqual({'{'} status: <b>&quot;REJECTED&quot;</b> {'}'});
+                  </code>
+                </pre>
+                <div className="ax-comment amber">
+                  <AlertTriangle size={12} />
+                  <p>
+                    <strong>Divergence Detected</strong>Modernized candidate returned CONFIRMED. Blocked by Confidence
+                    Gate.
+                  </p>
+                </div>
               </div>
-              <p>
-                <Check size={11} /> region <em>string · passed</em>
-              </p>
-              <p>
-                <Check size={11} /> units <em>integer · passed</em>
-              </p>
-              <p>
-                <Check size={11} /> quarter <em>enum · passed</em>
-              </p>
-              <div className="axis-chat-input">
-                <span>Ready to deliver</span>
-                <ArrowUpRight size={13} />
-              </div>
-            </div>
+            )}
           </div>
-        </article>
-      </section>
+        </div>
+      </div>
+      <div className="ax-evidence-footer">
+        {[
+          ['Candidate rules', 'Recover undocumented decisions from AST.', '/business-logic'],
+          ['Dependency maps', 'Make module and database coupling visible.', '/architecture'],
+          ['Service contracts', 'Define business and data boundaries.', '/advisor'],
+          ['Drift reports', 'Trace review decisions to executable evidence.', '/drift'],
+        ].map(([title, body, href]) => (
+          <Link key={title} href={href} className="hover:bg-white/[0.02] p-2 rounded transition block">
+            <h3 className="flex items-center gap-1 text-white">
+              {title} <ArrowUpRight size={12} className="text-[#8b95ff]" />
+            </h3>
+            <p className="text-xs text-[#8a8f98]">{body}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-      <section className="axis-roadmap-section">
-        <div className="axis-roadmap-copy reveal">
-          <span className="axis-roadmap-tag">
-            <i /> SCHEDULED, REPEATABLE RUNS
+const driftRows = [
+  ['BR-001', 'Insufficient inventory guard', 'Drift risk', 'Order Management'],
+  ['BR-002', 'High-value order approval', 'Review needed', 'Order Management'],
+  ['BR-003', 'Stock reservation window', 'Source-linked', 'Inventory'],
+  ['BR-004', 'Duplicate payment protection', 'Review needed', 'Payment'],
+];
+
+function DriftSection() {
+  const [filter, setFilter] = useState('All findings');
+  const [approval, setApproval] = useState('Pending');
+  const rows = filter === 'All findings' ? driftRows : driftRows.filter((row) => row[2] === filter);
+
+  return (
+    <section className="ax-drift" id="drift">
+      <div className="ax-drift-main">
+        <div className="ax-drift-copy ax-reveal">
+          <span>
+            <i /> BUSINESS LOGIC DRIFT DETECTION <ChevronRight size={11} />
           </span>
           <h2>
-            Set every portal
+            Catch behavior
             <br />
-            on autopilot
+            changes before
+            <br />
+            approval
           </h2>
           <p>
-            Turn one-off extraction into a dependable schedule. LegacyBridge runs in the background and
-            keeps a complete trail of every result.
+            Compare original and proposed rules, generate targeted regression tests, and show evidence before trusting
+            the migration.
           </p>
-        </div>
-        <div className="axis-roadmap-scene" aria-hidden="true">
-          <div className="axis-roadmap-plane">
-            <div className="axis-roadmap-grid" />
-            <span className="axis-date date-one">06:00</span>
-            <span className="axis-date date-two">07:00</span>
-            <span className="axis-date date-three">08:00</span>
-            <span className="axis-date date-four">09:00</span>
-            <div className="axis-schedule-task task-a">
-              <span className="task-diamond">
-                <Play size={12} />
-              </span>
-              <div>
-                <strong>Morning inventory pull</strong>
-                <small>SLACK · DAILY</small>
-              </div>
-            </div>
-            <div className="axis-schedule-task task-b">
-              <span className="task-diamond">
-                <Table2 size={12} />
-              </span>
-              <div>
-                <strong>Vendor invoice sync</strong>
-                <small>SHEETS · MONDAY</small>
-              </div>
-            </div>
-            <div className="axis-schedule-task task-c">
-              <span className="task-diamond">
-                <Database size={12} />
-              </span>
-              <div>
-                <strong>Plant 04 stock check</strong>
-                <small>POSTGRES · HOURLY</small>
-              </div>
-            </div>
-            <div className="axis-now-laser">
-              <span>NOW · 07:30</span>
-            </div>
-            <div className="axis-velocity-widget">
-              <span>
-                RUN HEALTH <em>▲ 4.8%</em>
-              </span>
-              <strong>99.2%</strong>
-              <div>
-                {[35, 48, 42, 66, 58, 76, 68, 88, 82, 94].map((height, index) => (
-                  <i key={index} style={{ height: `${height}%` }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function ResultTable({ preset }: { preset: PresetData }) {
-  return (
-    <div className="result-table-wrap">
-      <table className="result-table">
-        <thead>
-          <tr>
-            {preset.columns.map((column) => (
-              <th key={column.key}>{column.label}</th>
+          <div className="ax-drift-filters" role="group" aria-label="Filter illustrative findings">
+            {['All findings', 'Drift risk', 'Review needed'].map((item) => (
+              <button
+                key={item}
+                aria-pressed={filter === item}
+                className={filter === item ? 'active' : ''}
+                onClick={() => setFilter(item)}
+              >
+                {item}
+              </button>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {preset.rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {preset.columns.map((column) => (
-                <td key={column.key}>{row[column.key]}</td>
-              ))}
-            </tr>
+          </div>
+        </div>
+        <div className="ax-issue-visual ax-reveal ax-delay-2">
+          <div className="ax-issue-head">
+            <span>Business rule review</span>
+            <span>VERIFIED FINDINGS</span>
+          </div>
+          {rows.map(([id, title, status, module]) => (
+            <Link href="/drift" className="ax-issue-row hover:bg-white/[0.02] transition block" key={id}>
+              <span
+                className={`ax-issue-status ${
+                  status === 'Drift risk' ? 'red' : status === 'Review needed' ? 'amber' : 'green'
+                }`}
+              >
+                {status === 'Source-linked' ? <Check size={11} /> : <AlertTriangle size={11} />}
+              </span>
+              <code>{id}</code>
+              <div>
+                <strong>{title}</strong>
+                <small>{module}</small>
+              </div>
+              <em className={status === 'Drift risk' ? 'red' : status === 'Review needed' ? 'amber' : 'green'}>
+                {status}
+              </em>
+            </Link>
           ))}
-        </tbody>
-      </table>
-      <div className="table-summary">
-        <span>{preset.rows.length} rows</span>
-        <span>{preset.columns.length} columns</span>
-        <span>0 validation errors</span>
+          {rows.length === 0 && <div className="ax-issue-empty">No illustrative findings in this filter.</div>}
+          <div className="ax-issue-footer">
+            <span>
+              <CircleDot size={10} /> Human review required
+            </span>
+            <span aria-live="polite">{rows.length} shown</span>
+          </div>
+        </div>
       </div>
+      <div className="ax-validation-dual">
+        <article>
+          <div className="ax-validation-copy">
+            <h3>Build confidence with validation</h3>
+            <p>Compare expected and observed behavior through targeted evidence in the Safety Twin.</p>
+          </div>
+          <div className="ax-validation-chart">
+            <div className="ax-validation-chart-head">
+              <span>
+                <ShieldCheck size={12} /> Regression evidence
+              </span>
+              <span>LIVE TWIN</span>
+            </div>
+            <svg viewBox="0 0 520 230" preserveAspectRatio="none" aria-hidden="true">
+              <g className="ax-validation-grid">
+                <path d="M25 35H495M25 90H495M25 145H495M25 200H495" />
+              </g>
+              <path className="ax-expected-line" d="M25 184 C125 175 170 144 240 138 S370 107 495 71" />
+              <path className="ax-observed-line" d="M25 184 C125 175 170 144 240 138 S350 121 390 112 S445 150 495 168" />
+              <circle cx="390" cy="112" r="5" className="ax-drift-point" />
+              <path className="ax-drift-guide" d="M390 112V207" />
+            </svg>
+            <div className="ax-validation-tooltip">
+              <span>BEHAVIOR REVIEW</span>
+              <strong>
+                01 <em>mismatch</em>
+              </strong>
+              <small>qty: 5, stock: 2</small>
+            </div>
+            <div className="ax-chart-labels">
+              <span>ORIGINAL (REJECT)</span>
+              <span>MODERN (CONFIRM)</span>
+              <span>DIVERGENCE</span>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div className="ax-validation-copy">
+            <h3>Manage approvals with evidence</h3>
+            <p>Review proposed changes without hiding unverified outcomes.</p>
+          </div>
+          <div className="ax-approval-visual">
+            <div className="ax-approval-top">
+              <span>Migration Confidence Gate</span>
+              <span
+                role="status"
+                className={approval === 'Approved' ? 'green' : approval === 'Changes requested' ? 'red' : ''}
+              >
+                {approval.toUpperCase()}
+              </span>
+            </div>
+            <div className="ax-approval-target">
+              <AlertTriangle size={12} />
+              <div>
+                <strong>Inventory guard differs</strong>
+                <small>BR-001 · Slide 5 Edge Case Test</small>
+              </div>
+            </div>
+            <div className="ax-approval-menu">
+              <button aria-pressed={approval === 'Approved'} onClick={() => setApproval('Approved')}>
+                <Check size={11} /> Approve locally <kbd>↵</kbd>
+              </button>
+              <button aria-pressed={approval === 'Changes requested'} onClick={() => setApproval('Changes requested')}>
+                <Copy size={11} /> Request changes
+              </button>
+              <button aria-pressed={approval === 'Pending'} onClick={() => setApproval('Pending')}>
+                <X size={11} /> Reset review <kbd>⌘D</kbd>
+              </button>
+            </div>
+            <div className="ax-approval-note">
+              <LockKeyhole size={10} /> Confidence Gate blocks automated merge until human sign-off.
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+const integrations = [
+  {
+    title: 'TinyFish Research',
+    body: 'External documentation research with cited findings and allowlisted vendor domains.',
+    type: 'list',
+    url: '/research',
+  },
+  {
+    title: 'Migration Safety Twin',
+    body: 'Parallel side-by-side execution of original monolith and candidate service.',
+    type: 'orbit',
+    url: '/safety-twin',
+  },
+  {
+    title: 'Confidence Gate',
+    body: '10-dimension architectural readiness matrix with human operator approval.',
+    type: 'network',
+    url: '/confidence-gate',
+  },
+  {
+    title: 'Continuous Guard',
+    body: 'Automated blast-radius calculation and regression mapping on git pull requests.',
+    type: 'layers',
+    url: '/continuous-guard',
+  },
+  {
+    title: 'Isolated Execution',
+    body: 'Sandboxed workers restricting CPU, memory, network, and host filesystem.',
+    type: 'worker',
+    url: '/security',
+  },
+];
+
+function IntegrationVisual({ type }: { type: string }) {
+  if (type === 'list')
+    return (
+      <div className="ax-int-list">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <i key={item} />
+        ))}
+      </div>
+    );
+  if (type === 'orbit')
+    return (
+      <div className="ax-int-orbit">
+        <span />
+        <i />
+        <i />
+        <i />
+        <i />
+      </div>
+    );
+  if (type === 'network')
+    return (
+      <div className="ax-int-network">
+        <span>GATE</span>
+        <i />
+        <i />
+        <i />
+        <i />
+      </div>
+    );
+  if (type === 'layers')
+    return (
+      <div className="ax-int-layers">
+        <i />
+        <i />
+        <i />
+      </div>
+    );
+  return (
+    <div className="ax-int-worker">
+      <Server size={28} />
+      <span>ISOLATED</span>
+      <i />
     </div>
   );
 }
 
-function DemoConsole({
-  preset,
-  notify,
-}: {
-  preset: PresetData;
-  notify: (msg: string) => void;
-}) {
-  const [prompt, setPrompt] = useState(preset.prompt);
-  const [destination, setDestination] = useState(preset.destination);
-  const [schedule, setSchedule] = useState(preset.schedule);
-  const [status, setStatus] = useState<'idle' | 'running' | 'success' | 'error'>('success');
-  const [currentStep, setCurrentStep] = useState(4);
-  const [activeTab, setActiveTab] = useState<'table' | 'json' | 'log'>('table');
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setPrompt(preset.prompt);
-    setDestination(preset.destination);
-    setSchedule(preset.schedule);
-    setActiveTab('table');
-    if (preset.nonce) {
-      setStatus('idle');
-      setCurrentStep(-1);
-    } else {
-      setStatus('success');
-      setCurrentStep(4);
-    }
-  }, [preset]);
-
-  const target = destinationTargets[preset.id]?.[destination] || 'Connected destination';
-  const runSteps = [
-    { title: 'Secure session started', detail: 'Vault login · credentials hidden' },
-    { title: 'Portal navigation complete', detail: 'Found the requested live view' },
-    { title: 'Data extracted', detail: `${preset.rows.length} rows · ${preset.columns.length} fields captured` },
-    { title: 'Schema validation passed', detail: 'Required fields present · 0 errors' },
-    { title: `Delivered to ${destination}`, detail: target },
-  ];
-
-  useEffect(() => {
-    if (status !== 'running') return undefined;
-    const delay = currentStep === 1 ? 1050 : 780;
-    const timer = window.setTimeout(() => {
-      if (currentStep < runSteps.length - 1) {
-        setCurrentStep((step) => step + 1);
-      } else {
-        setStatus('success');
-        setActiveTab('table');
-        notify(`Run complete — data delivered to ${destination}.`);
-      }
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [status, currentStep, destination, runSteps.length, notify]);
-
-  const startRun = () => {
-    if (!prompt.trim()) {
-      setStatus('error');
-      notify('Describe the task before starting a run.');
-      return;
-    }
-    setStatus('running');
-    setCurrentStep(0);
-    setCopied(false);
-  };
-
-  const jsonOutput = JSON.stringify(
-    {
-      task: preset.taskName,
-      source: 'legacy-portal',
-      data: preset.rows,
-      validation: { status: 'passed', errors: 0 },
-      destination: { type: destination, target },
-    },
-    null,
-    2
-  );
-
-  const copyJson = async () => {
-    try {
-      await navigator.clipboard.writeText(jsonOutput);
-      setCopied(true);
-      notify('Validated JSON copied to clipboard.');
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      notify('Clipboard access is unavailable in this browser.');
-    }
-  };
-
-  const downloadJson = () => {
-    const blob = new Blob([jsonOutput], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${preset.id}-legacybridge-output.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    notify('JSON output downloaded.');
-  };
-
-  const statusLabel =
-    status === 'running'
-      ? 'Agent running'
-      : status === 'success'
-      ? 'Run completed'
-      : status === 'error'
-      ? 'Task required'
-      : 'Ready to run';
-
+function IntegrationsSection() {
   return (
-    <div className={`demo-console ${status === 'running' ? 'is-running' : ''}`}>
-      <div className="window-chrome demo-chrome">
-        <div className="window-dots">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="demo-console-title">
-          <BridgeMark size={17} />
-          <span>LegacyBridge</span>
-          <i />
-          Task Builder
-        </div>
-        <div className={`demo-status ${status}`}>
-          <span />
-          {statusLabel}
-        </div>
+    <section className="ax-integrations">
+      <div className="ax-integrations-heading ax-reveal">
+        <span>
+          <i /> Workflows and integrations
+        </span>
+        <h2>Connect research, code, and evidence</h2>
+        <p>Explore the connected platform engines. Every capability is backed by executable tests.</p>
       </div>
-      <div className="demo-body">
-        <div className="task-builder">
-          <div className="demo-panel-heading">
-            <div>
-              <span className="mini-breadcrumb">NEW TASK</span>
-              <h3>{preset.taskName}</h3>
-            </div>
-            <span className="demo-step-tag">01 / DEFINE</span>
-          </div>
-          <label className="field-label" htmlFor="task-prompt">
-            What should the agent do?
-          </label>
-          <div className="prompt-textarea-wrap">
-            <Sparkles size={15} />
-            <textarea
-              id="task-prompt"
-              value={prompt}
-              onChange={(event) => {
-                setPrompt(event.target.value);
-                if (status === 'error') setStatus('idle');
-              }}
-              disabled={status === 'running'}
-              rows={5}
-            />
-          </div>
-          <label className="field-label">Where should the data go?</label>
-          <div className="destination-picker">
-            {Object.entries(destinationMeta).map(([name, meta]) => {
-              const Icon = meta.icon;
-              return (
-                <button
-                  key={name}
-                  className={`destination-option ${destination === name ? 'selected' : ''}`}
-                  onClick={() => setDestination(name)}
-                  disabled={status === 'running'}
-                  aria-pressed={destination === name}
-                  type="button"
-                >
-                  <Icon size={15} />
-                  <span>{name}</span>
-                  {destination === name && <Check size={12} />}
-                </button>
-              );
-            })}
-          </div>
-          <label className="field-label" htmlFor="task-schedule">
-            When should it run?
-          </label>
-          <div className="select-wrap">
-            <CalendarClock size={15} />
-            <select
-              id="task-schedule"
-              value={schedule}
-              onChange={(event) => setSchedule(event.target.value)}
-              disabled={status === 'running'}
-            >
-              <option>Run once</option>
-              <option>Daily at 07:30</option>
-              <option>Every Monday at 09:00</option>
-              <option>Every 6 hours</option>
-              <option>Daily at 06:45</option>
-            </select>
-            <ChevronDown size={14} />
-          </div>
-          <button
-            className="button button-primary run-button"
-            onClick={startRun}
-            disabled={status === 'running'}
-            type="button"
+      <div
+        className="ax-integration-track"
+        tabIndex={0}
+        role="region"
+        aria-label="Proposed workflows and integrations; scroll horizontally for more"
+      >
+        {integrations.map((item, index) => (
+          <Link
+            className="ax-integration-card ax-reveal"
+            style={{ '--delay': `${index * 70}ms` } as React.CSSProperties}
+            href={item.url}
+            key={item.title}
           >
-            {status === 'running' ? (
-              <>
-                <Loader2 size={16} className="spin" /> Agent is working…
-              </>
-            ) : (
-              <>
-                <Play size={15} fill="currentColor" /> {status === 'idle' ? 'Run this task' : 'Replay the run'}
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-          <div className="task-builder-foot">
-            <LockKeyhole size={12} />
-            <span>Read-only by default. Credentials stay in Vault.</span>
-          </div>
-        </div>
-
-        <div className="run-monitor">
-          <div className="demo-panel-heading run-monitor-heading">
+            <span className="ax-proposed-tag">VERIFIED</span>
+            <IntegrationVisual type={item.type} />
             <div>
-              <span className="mini-breadcrumb">RUN MONITOR</span>
-              <h3>
-                {preset.runId} <span>· Live trace</span>
-              </h3>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
             </div>
-            <span className="demo-step-tag">02 / OBSERVE</span>
-          </div>
-          <div className="demo-run-steps">
-            {runSteps.map((step, index) => {
-              const complete =
-                status === 'success' || (status !== 'idle' && status !== 'error' && index < currentStep);
-              const active = status === 'running' && index === currentStep;
-              return (
-                <div
-                  className={`demo-run-step ${complete ? 'complete' : ''} ${active ? 'active' : ''}`}
-                  key={step.title}
-                >
-                  <span className="demo-run-step-icon">
-                    {complete ? (
-                      <Check size={11} />
-                    ) : active ? (
-                      <Loader2 size={12} className="spin" />
-                    ) : (
-                      <span />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{step.title}</strong>
-                    <span>{step.detail}</span>
-                  </div>
-                  {complete && (
-                    <time>
-                      {index === 0
-                        ? '0:03'
-                        : index === 1
-                        ? '0:09'
-                        : index === 2
-                        ? '0:16'
-                        : index === 3
-                        ? '0:18'
-                        : '0:19'}
-                    </time>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className={`output-panel ${status === 'running' ? 'is-updating' : ''}`}>
-            <div className="output-tabs-row">
-              <div className="output-tabs" role="tablist" aria-label="Run output">
-                <button
-                  role="tab"
-                  aria-selected={activeTab === 'table'}
-                  className={activeTab === 'table' ? 'active' : ''}
-                  onClick={() => setActiveTab('table')}
-                  type="button"
-                >
-                  <Table2 size={13} /> Table
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={activeTab === 'json'}
-                  className={activeTab === 'json' ? 'active' : ''}
-                  onClick={() => setActiveTab('json')}
-                  type="button"
-                >
-                  <Braces size={13} /> JSON
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={activeTab === 'log'}
-                  className={activeTab === 'log' ? 'active' : ''}
-                  onClick={() => setActiveTab('log')}
-                  type="button"
-                >
-                  <ScrollText size={13} /> Run log
-                </button>
-              </div>
-              <div className="output-actions">
-                <button
-                  onClick={copyJson}
-                  aria-label="Copy JSON"
-                  title="Copy JSON"
-                  type="button"
-                >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                <button
-                  onClick={downloadJson}
-                  aria-label="Download JSON"
-                  title="Download JSON"
-                  type="button"
-                >
-                  <Download size={14} />
-                </button>
-              </div>
-            </div>
-            <div className="output-content" role="tabpanel">
-              <div className="output-result-title">
-                <div>
-                  <span className="mini-breadcrumb">EXTRACTED RESULT</span>
-                  <h4>{preset.resultTitle}</h4>
-                </div>
-                <span className="schema-valid">
-                  <ShieldCheck size={12} /> Schema valid
-                </span>
-              </div>
-              {activeTab === 'table' && <ResultTable preset={preset} />}
-              {activeTab === 'json' && <pre className="json-output">{jsonOutput}</pre>}
-              {activeTab === 'log' && (
-                <div className="run-log">
-                  {status === 'idle' || status === 'error' ? (
-                    <div className="empty-log">
-                      <ScrollText size={23} />
-                      <p>Run this task to generate a fresh audit trace.</p>
-                    </div>
-                  ) : (
-                    runSteps
-                      .slice(0, status === 'success' ? 5 : currentStep + 1)
-                      .map((step, index) => (
-                        <div key={step.title}>
-                          <time>07:30:{String(3 + index * 4).padStart(2, '0')}</time>
-                          <span className="log-level">INFO</span>
-                          <p>
-                            {step.title} — {step.detail}
-                          </p>
-                        </div>
-                      ))
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="delivery-bar">
-              <div className="delivery-bar-icon">
-                {(() => {
-                  const Icon = destinationMeta[destination]?.icon || Database;
-                  return <Icon size={15} />;
-                })()}
-              </div>
-              <div>
-                <span>DELIVERY DESTINATION</span>
-                <strong>
-                  {destination} <i>→</i> {target}
-                </strong>
-              </div>
-              <span className={`delivery-check ${status === 'success' ? 'visible' : ''}`}>
-                <CheckCircle2 size={15} /> Delivered
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="demo-disclaimer">
-        <CircleDot size={11} /> Interactive product preview · All portal activity and data are simulated
-      </div>
-    </div>
-  );
-}
-
-function DemoSection({ preset }: { preset: PresetData }) {
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef<number | null>(null);
-
-  const notify = (message: string) => {
-    setToast(message);
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(''), 3200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    };
-  }, []);
-
-  return (
-    <section className="section demo-section" id="demo">
-      <div className="demo-grid-bg" />
-      <div className="container">
-        <div className="section-heading demo-heading reveal">
-          <div>
-            <span className="section-kicker">THE PRODUCT, IN MOTION</span>
-            <h2>
-              Don’t take our word for it.
-              <br />
-              <span className="text-gradient">Run the workflow.</span>
-            </h2>
-          </div>
-          <p>
-            Edit the task, pick a destination and watch LegacyBridge move from intent to validated
-            output.
-          </p>
-        </div>
-        <div className="reveal">
-          <DemoConsole preset={preset} notify={notify} />
-        </div>
-      </div>
-      <div className={`toast ${toast ? 'show' : ''}`} role="status">
-        <CheckCircle2 size={16} />
-        {toast}
+            <span className="ax-integration-arrow">
+              <ArrowUpRight size={13} />
+            </span>
+          </Link>
+        ))}
       </div>
     </section>
   );
 }
 
-function ReliabilitySection() {
-  const [approved, setApproved] = useState(false);
-  const [inspected, setInspected] = useState(false);
+const foundationItems = [
+  {
+    title: 'Source Intelligence',
+    body: 'Language-aware parsing, dependency analysis, and source-linked explanations are verified across supported repositories.',
+  },
+  {
+    title: 'Secure by Design',
+    body: 'Private storage, server-side secrets, controlled archive handling, rate limiting, and isolated execution are enforced by default.',
+  },
+  {
+    title: 'Human Governance',
+    body: 'Migration plans and validation evidence require developer review before consequential production changes.',
+  },
+];
+
+function FoundationsSection() {
+  const [active, setActive] = useState(0);
 
   return (
-    <section className="axis-reliability" id="security">
-      <div className="axis-issue-grid">
-        <article className="axis-issue-panel reveal">
-          <div className="axis-issue-copy">
-            <span>VALIDATION AND RUN HEALTH</span>
-            <h3>Build confidence with every run</h3>
-            <p>
-              A finished browser session is not enough. LegacyBridge proves the shape and completeness
-              of every result before delivery.
-            </p>
-          </div>
-          <div className="axis-cycles-visual">
-            <div className="axis-cycles-head">
-              <span>
-                <i /> Validation rate
-              </span>
-              <strong>Last 14 runs</strong>
+    <section className="ax-foundations" id="security">
+      <div className="ax-foundations-copy ax-reveal">
+        <span>Under the hood</span>
+        <h2>
+          Engineered for
+          <br />
+          trust
+        </h2>
+        <p>LegacyBridge makes complexity visible through explicit boundaries, evidence, and human oversight.</p>
+        <div className="ax-foundation-list">
+          {foundationItems.map((item, index) => (
+            <div className={active === index ? 'active' : ''} key={item.title}>
+              <button
+                onClick={() => setActive(active === index ? -1 : index)}
+                aria-expanded={active === index}
+                aria-controls={`ax-foundation-panel-${index}`}
+              >
+                <strong>{item.title}</strong>
+                <span>{active === index ? <X size={12} /> : <Plus size={12} />}</span>
+              </button>
+              {active === index && <p id={`ax-foundation-panel-${index}`}>{item.body}</p>}
             </div>
-            <div className="axis-cycles-chart">
-              <div className="axis-chart-grid-lines" />
-              <svg viewBox="0 0 500 160" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="reliabilityArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#5E6AD2" stopOpacity=".3" />
-                    <stop offset="100%" stopColor="#5E6AD2" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  className="area"
-                  d="M0 128 C55 126 78 105 118 110 S190 122 230 84 S300 69 335 57 S420 38 500 22 L500 160 L0 160Z"
-                />
-                <path
-                  className="line"
-                  d="M0 128 C55 126 78 105 118 110 S190 122 230 84 S300 69 335 57 S420 38 500 22"
-                />
-              </svg>
-              <span className="axis-chart-now">
-                <strong>99.2%</strong>
-                <small>SCHEMA VALID</small>
-              </span>
-            </div>
-            <div className="axis-validation-list">
-              <span>
-                <Check size={11} /> Required fields <strong>3 / 3</strong>
-              </span>
-              <span>
-                <Check size={11} /> Type checks <strong>PASSED</strong>
-              </span>
-              <span>
-                <Check size={11} /> Delivery contract <strong>VALID</strong>
-              </span>
-            </div>
-          </div>
-        </article>
-
-        <article className="axis-issue-panel reveal reveal-delay-1">
-          <div className="axis-issue-copy">
-            <span>HUMAN-IN-THE-LOOP CONTROL</span>
-            <h3>Manage sensitive actions with intent</h3>
-            <p>
-              Extraction is read-only by default. When a task needs to write back, a person stays in
-              control of the final action.
-            </p>
-          </div>
-          <div className="axis-approval-window">
-            <div className="axis-approval-head">
-              <span>Approval queue</span>
-              <span>1 PENDING</span>
-            </div>
-            <div className="axis-approval-item muted">
-              <LockKeyhole size={12} />
-              <div>
-                <strong>Read inventory table</strong>
-                <small>Read-only · no approval needed</small>
-              </div>
-              <Check size={12} />
-            </div>
-            <div className="axis-approval-item active">
-              <LockKeyhole size={12} />
-              <div>
-                <strong>Update inventory record</strong>
-                <small>Write action · approval required</small>
-              </div>
-              <span>WAITING</span>
-            </div>
-            <div className="axis-approval-menu">
-              <span>REVIEW WRITE ACTION</span>
-              <p>
-                Update 3 stock values in the legacy ERP. The proposed changes are available in the
-                run snapshot.
-              </p>
-              {inspected && (
-                <div className="axis-change-diff">
-                  <span>
-                    AL-204 <del>180 kg</del> <ins>240 kg</ins>
-                  </span>
-                  <span>
-                    BR-118 <del>42 units</del> <ins>60 units</ins>
-                  </span>
-                  <span>
-                    PK-032 <del>95 kg</del> <ins>120 kg</ins>
-                  </span>
-                </div>
-              )}
-              <div>
-                <button
-                  type="button"
-                  aria-expanded={inspected}
-                  onClick={() => setInspected((value) => !value)}
-                >
-                  {inspected ? 'Hide changes' : 'Inspect changes'}
-                </button>
-                <button
-                  type="button"
-                  className={approved ? 'approved' : ''}
-                  aria-pressed={approved}
-                  onClick={() => setApproved((value) => !value)}
-                >
-                  {approved ? (
-                    <>
-                      <Check size={11} /> Approved
-                    </>
-                  ) : (
-                    'Approve write'
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="axis-approval-item muted">
-              <ScrollText size={12} />
-              <div>
-                <strong>Store audit receipt</strong>
-                <small>Runs after the decision</small>
-              </div>
-              <span>QUEUED</span>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div className="axis-feature-footer reveal">
-        <div>
-          <Braces size={17} />
-          <h4>Goal in, JSON out</h4>
-          <p>Structured data without a custom API.</p>
-        </div>
-        <div>
-          <MousePointer2 size={17} />
-          <h4>No selectors to maintain</h4>
-          <p>The agent reads the live interface.</p>
-        </div>
-        <div>
-          <KeyRound size={17} />
-          <h4>Credentials stay protected</h4>
-          <p>Vault logins never enter your prompt.</p>
-        </div>
-        <div>
-          <Fingerprint size={17} />
-          <h4>Every result is traceable</h4>
-          <p>Replay, output and delivery in one trail.</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function UseCases({ onLoadPreset }: { onLoadPreset: (preset: PresetData) => void }) {
-  const [active, setActive] = useState<PresetKey>('operations');
-  const item = useCases.find((useCase) => useCase.id === active) || useCases[0];
-  const preset: PresetData = { ...presets[active], nonce: Date.now() };
-
-  return (
-    <section className="section use-cases-section" id="use-cases">
-      <div className="container">
-        <div className="section-heading split-heading reveal">
-          <div>
-            <span className="section-kicker">BUILT FOR PORTAL-BOUND TEAMS</span>
-            <h2>
-              One bridge.
-              <br />A hundred busywork tasks.
-            </h2>
-          </div>
-          <p>
-            If your team can explain the task, LegacyBridge can turn it into a repeatable data flow.
-            Start with the work that happens every single day.
-          </p>
-        </div>
-        <div className="use-case-tabs reveal" role="tablist" aria-label="Use cases">
-          {useCases.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              role="tab"
-              aria-selected={active === id}
-              className={active === id ? 'active' : ''}
-              onClick={() => setActive(id)}
-              type="button"
-            >
-              <Icon size={15} />
-              {label}
-            </button>
           ))}
         </div>
-        <div className="use-case-panel reveal" key={item.id}>
-          <div className="use-case-copy">
-            <span className="use-case-eyebrow">{item.eyebrow}</span>
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
-            <div className="before-after">
-              <div>
-                <span className="before-icon">
-                  <X size={12} />
-                </span>
-                <div>
-                  <strong>Without LegacyBridge</strong>
-                  <p>{item.before}</p>
-                </div>
-              </div>
-              <div>
-                <span className="after-icon">
-                  <Check size={12} />
-                </span>
-                <div>
-                  <strong>With LegacyBridge</strong>
-                  <p>{item.after}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="use-case-example">
-            <div className="example-window-head">
-              <div className="window-dots">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span>TASK RECIPE</span>
-              <Sparkles size={13} />
-            </div>
-            <div className="example-task">
-              <span className="mini-breadcrumb">PLAIN-ENGLISH GOAL</span>
-              <p>“{presets[active].prompt}”</p>
-            </div>
-            <div className="example-meta">
-              <div>
-                <span>DESTINATION</span>
-                <strong>{presets[active].destination}</strong>
-              </div>
-              <div>
-                <span>SCHEDULE</span>
-                <strong>{presets[active].schedule}</strong>
-              </div>
-            </div>
-            <div className="example-result">
-              <div>
-                <CheckCircle2 size={14} />
-                <span>{presets[active].resultTitle}</span>
-              </div>
-              <span>{presets[active].rows.length} rows · Validated</span>
-            </div>
-            <button
-              className="button button-light example-button"
-              onClick={() => onLoadPreset(preset)}
-              type="button"
-            >
-              Load this task in the demo <ArrowRight size={15} />
-            </button>
-          </div>
-        </div>
-        <div className="impact-banner reveal">
-          <div className="impact-icon">
-            <Clock3 size={23} />
-          </div>
-          <div>
-            <span>ILLUSTRATIVE MORNING WORKFLOW</span>
-            <h3>Two hours of portal work. One scheduled run.</h3>
-          </div>
-          <p>
-            The concept’s manufacturer scenario targets <strong>under one minute</strong> for a report
-            that previously took about two hours to compile. Target, not benchmark.
-          </p>
-        </div>
       </div>
-    </section>
-  );
-}
-
-function FinalCta() {
-  return (
-    <section className="final-cta-section">
-      <div className="final-cta-grid" />
-      <div className="final-cta-glow" />
-      <div className="container final-cta reveal">
-        <div className="final-mark">
-          <BridgeMark size={37} />
+      <div className="ax-foundations-visual ax-reveal ax-delay-2">
+        <div className="ax-foundation-grid" />
+        <div className="ax-foundation-card small">
+          <span>ENTERPRISE ARCHITECTURE</span>
+          <div>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+              <i key={item} />
+            ))}
+          </div>
         </div>
-        <span className="section-kicker">YOUR NEXT INTEGRATION CAN START WITH A SENTENCE</span>
-        <h2>
-          Describe the task.
-          <br />
-          <span>Keep the old system.</span>
-        </h2>
-        <p>The new standard for turning legacy portals into reliable, validated data feeds.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a className="button button-primary button-large" href="#demo">
-            Build your first bridge <ArrowRight size={17} />
-          </a>
-          <Link className="button button-ghost button-large" href="/dashboard">
-            <LayoutDashboard size={16} /> Open Operations Console
-          </Link>
+        <div className="ax-foundation-counter">
+          <Plus size={12} />
+          <strong>05</strong>
+          <span>connected stages</span>
+          <small>Discover → Validate</small>
         </div>
-        <span className="final-note">No API required · Interactive concept demo</span>
+        <div className="ax-foundation-orb">
+          <span>
+            <ShieldCheck size={23} />
+          </span>
+        </div>
+        <div className="ax-foundation-laser" />
       </div>
     </section>
   );
 }
 
 function Footer() {
+  const [email, setEmail] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setNotice(`Thank you! Updates will be sent to ${email}`);
+    setEmail('');
+  };
+
   return (
-    <footer className="footer">
-      <div className="container footer-top">
-        <div className="footer-brand">
-          <a className="brand" href="#top">
-            <span className="brand-mark">
-              <BridgeMark />
-            </span>
-            <span>LegacyBridge</span>
-          </a>
-          <p>
-            Structured data out of systems
-            <br />
-            that never had an API.
-          </p>
-          <span className="footer-status">
-            <i /> Concept prototype · HackIIITD 2026
-          </span>
+    <footer className="ax-footer">
+      <div className="ax-footer-grid">
+        <div className="ax-footer-brand">
+          <Logo footer />
+          <p>The modern standard for evidence-based legacy modernization. Understand rules, plan boundaries, and validate behavior.</p>
+          <div className="ax-footer-status">
+            <i /> Connected Platform · 39 Verified Automated Tests
+          </div>
         </div>
-        <div className="footer-links">
-          <div>
-            <strong>PRODUCT</strong>
-            <a href="#how-it-works">How it works</a>
-            <a href="#demo">Interactive demo</a>
-            <a href="#security">Reliability</a>
-          </div>
-          <div>
-            <strong>EXPLORE</strong>
-            <a href="#use-cases">Use cases</a>
-            <a href="#product">Why LegacyBridge</a>
-            <a href="/legacybridge-brief.pdf" target="_blank" rel="noreferrer">
-              Original idea brief <ArrowUpRight size={11} />
-            </a>
-          </div>
-          <div>
-            <strong>TEAM</strong>
-            <span>Team Aspirations</span>
-            <span>Tushar Bisht · Team lead</span>
-            <span>Sourav · Team member</span>
-          </div>
+        <div>
+          <h3>Product</h3>
+          <Link href="/analysis">Discovery</Link>
+          <Link href="/advisor">Architecture Advisor</Link>
+          <Link href="/migration">Migration planning</Link>
+          <Link href="/drift">Drift Detector</Link>
+          <Link href="/safety-twin">Safety Twin</Link>
+          <Link href="/dashboard">Dashboard</Link>
+        </div>
+        <div>
+          <h3>Governance</h3>
+          <Link href="/confidence-gate">Confidence Gate</Link>
+          <Link href="/continuous-guard">Continuous Guard</Link>
+          <Link href="/security">Security & Audit</Link>
+          <Link href="/reports">Dossier Reports</Link>
+          <Link href="/pricing">Pricing Plans</Link>
+        </div>
+        <div>
+          <h3>Resources</h3>
+          <Link href="/about">About & Origin</Link>
+          <Link href="/faq">Technical FAQ</Link>
+          <a href="https://docs.tinyfish.ai" target="_blank" rel="noreferrer">
+            TinyFish docs
+          </a>
+          <a href="https://supabase.com/docs" target="_blank" rel="noreferrer">
+            Supabase docs
+          </a>
+          <Link href="/dashboard">Launch Console</Link>
+        </div>
+        <div className="ax-footer-subscribe">
+          <h3>Stay Updated</h3>
+          <form onSubmit={submit}>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="email@domain.com"
+              aria-label="Email for updates"
+            />
+            <button aria-label="Subscribe to updates">
+              <ArrowRight size={13} />
+            </button>
+          </form>
+          <p>Get architectural whitepapers and migration benchmark updates.</p>
+          {notice && <span role="status" className="text-xs text-[#a78bfa] block mt-1">{notice}</span>}
         </div>
       </div>
-      <div className="axis-footer-word" aria-hidden="true">
+      <div className="ax-footer-word" aria-hidden="true">
         LEGACYBRIDGE
       </div>
-      <div className="container footer-bottom">
-        <span>© 2026 LegacyBridge. Concept experience.</span>
-        <span>Demo data is simulated. Performance targets are illustrative.</span>
-        <a href="#top">
-          Back to top <ArrowUpRight size={12} />
-        </a>
+      <div className="ax-footer-bottom">
+        <span>© {new Date().getFullYear()} LegacyBridge · All rights reserved</span>
+        <span>
+          <i /> Verified Platform Engine
+        </span>
+        <span className="ax-footer-legal">
+          <Link href="/privacy">Privacy policy</Link>
+          <Link href="/terms">Terms &amp; conditions</Link>
+        </span>
+        <span>Built for human review</span>
       </div>
     </footer>
   );
 }
 
-export default function AxisLandingPage() {
-  const [demoPreset, setDemoPreset] = useState<PresetData>({ ...presets.operations, nonce: 0 });
-
+export default function App() {
   useEffect(() => {
+    const elements = document.querySelectorAll('.ax-reveal');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      elements.forEach((element) => element.classList.add('is-visible'));
+      return undefined;
+    }
     const observer = new IntersectionObserver(
-      (entries) => {
+      (entries) =>
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
             observer.unobserve(entry.target);
           }
-        });
-      },
-      { threshold: 0.08, rootMargin: '0px 0px -40px' }
+        }),
+      { threshold: 0.1, rootMargin: '0px 0px -40px' }
     );
-    document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
+    elements.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
   }, []);
 
-  const loadPreset = (preset: PresetData) => {
-    setDemoPreset(preset);
-    window.setTimeout(
-      () => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-      50
-    );
-  };
-
   return (
-    <>
+    <div className="ax-site">
       <Navbar />
       <main>
         <Hero />
-        <IntegrationStrip />
-        <ProblemSection />
-        <HowItWorks />
-        <DemoSection preset={demoPreset} />
-        <ReliabilitySection />
-        <UseCases onLoadPreset={loadPreset} />
-        <FinalCta />
+        <TechStrip />
+        <FeatureSection />
+        <DualIntelligence />
+        <DirectionSection />
+        <EvidenceSection />
+        <DriftSection />
+        <IntegrationsSection />
+        <FoundationsSection />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

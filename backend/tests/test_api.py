@@ -18,7 +18,8 @@ async def test_health_endpoint():
         assert res.status_code == 200
         data = res.json()
         assert data["status"] == "healthy"
-        assert data["demo_mode"] is True
+        from backend.config import settings
+        assert data["demo_mode"] == settings.DEMO_MODE
 
 @pytest.mark.asyncio
 async def test_plan_task_endpoint():

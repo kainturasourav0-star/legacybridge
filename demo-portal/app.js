@@ -70,7 +70,7 @@ function renderTable() {
             <td>${row.productName}</td>
             <td align="right">${row.unitsSold.toLocaleString()}</td>
             <td align="right">$${row.unitPrice.toFixed(2)}</td>
-            <td align="right"><strong>$${row.revenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong></td>
+            <td align="right"><strong>$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></td>
             <td><span class="badge-reconciled">${row.status}</span></td>
         `;
         tbody.appendChild(tr);
@@ -176,6 +176,45 @@ function toggleBreakUi() {
     }
 }
 
+let isAmbiguityInjected = false;
+
+function toggleAmbiguityInjection() {
+    isAmbiguityInjected = !isAmbiguityInjected;
+    const banner = document.getElementById("ambiguity-banner");
+    const actionsDiv = document.querySelector(".table-pagination-controls");
+
+    if (isAmbiguityInjected) {
+        if (banner) banner.style.display = "block";
+        const dupBtn = document.createElement("button");
+        dupBtn.id = "btn-next-page-ambiguous";
+        dupBtn.className = "classic-button ambiguous-duplicate";
+        dupBtn.textContent = "Next Page >>";
+        dupBtn.setAttribute("data-test", "ambiguous-selector");
+        dupBtn.style.marginRight = "6px";
+        dupBtn.style.borderColor = "#b7791f";
+        dupBtn.onclick = () => alert("Ambiguous button triggered: Cannot deterministically confirm intended action.");
+        if (actionsDiv) {
+            actionsDiv.prepend(dupBtn);
+        }
+        console.log("⚠️ AMBIGUITY INJECTED: 2 plausible 'Next Page' buttons found. Automatic execution must be blocked.");
+    } else {
+        if (banner) banner.style.display = "none";
+        document.querySelectorAll(".ambiguous-duplicate").forEach(el => el.remove());
+        console.log("✅ AMBIGUITY REMOVED.");
+    }
+}
+
+function resetDemoState() {
+    if (isUiBroken) toggleBreakUi();
+    if (isAmbiguityInjected) toggleAmbiguityInjection();
+    const modal = document.getElementById("mfa-modal");
+    if (modal) modal.style.display = "none";
+    loginDirect();
+    currentPage = 1;
+    renderTable();
+    console.log("↺ DEMO PORTAL STATE RESET TO SCENARIO A.");
+}
+
 function startSessionTimer() {
     let seconds = 862;
     setInterval(() => {
@@ -193,6 +232,8 @@ function startSessionTimer() {
 window.__LEGACY_ERP_STATE__ = {
     isLoggedIn: () => isLoggedIn,
     isUiBroken: () => isUiBroken,
+    isAmbiguityInjected: () => isAmbiguityInjected,
     getAllData: () => ALL_SALES_DATA,
-    login: loginDirect
+    login: loginDirect,
+    reset: resetDemoState
 };

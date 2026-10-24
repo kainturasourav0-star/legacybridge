@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Acme Inventory & Supply Chain Suite v4.2</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body class="classic-erp">
     <!-- Top Hackathon Demo Control Bar -->
     <div id="hackathon-control-bar" class="demo-bar">
@@ -13,16 +15,29 @@
             <span class="demo-title">Acme Inventory Enterprise v4.2.1 (Build 2004)</span>
         </div>
         <div class="demo-bar-right">
-            <button id="toggle-mfa-btn" onclick="toggleMfaModal()" class="demo-action-btn">Simulate Session Expiry / MFA</button>
-            <button id="break-ui-btn" onclick="toggleBreakUi()" class="demo-break-btn">
-                <span id="break-ui-indicator">🔴</span> <span id="break-ui-text">Break the UI (Test Agent Resilience)</span>
+            <button id="scenario-a-btn" onclick="resetDemoState()" class="demo-action-btn" title="Scenario A: Clean ERP Portal">
+                ↺ Reset State (Scenario A)
+            </button>
+            <button id="break-ui-btn" onclick="toggleBreakUi()" class="demo-break-btn" title="Scenario B: Interface Drift">
+                <span id="break-ui-indicator">🔴</span> <span id="break-ui-text">Scenario B: Drift / Mutate DOM</span>
+            </button>
+            <button id="ambiguity-btn" onclick="toggleAmbiguityInjection()" class="demo-action-btn" title="Scenario C: Ambiguity Injection">
+                <span id="ambiguity-indicator">⚠️</span> <span id="ambiguity-text">Scenario C: Inject Ambiguity</span>
+            </button>
+            <button id="toggle-mfa-btn" onclick="toggleMfaModal()" class="demo-action-btn" title="Simulate Session / MFA challenge">
+                Session Expiry
             </button>
         </div>
     </div>
 
     <!-- Live UI Disruption Alert (Visible when Broken) -->
     <div id="disruption-banner" class="disruption-banner" style="display: none;">
-        ⚠️ <strong>DOM MUTATION INJECTED:</strong> Menus moved, button IDs randomized, semantic labels altered. Traditional CSS/XPath selector scrapers WILL fail here. TinyFish uses semantic visual LLM navigation.
+        ⚠️ <strong>SCENARIO B (DRIFT INJECTED):</strong> DOM mutated, IDs randomized, menu moved. Legacy selectors fail; TinyFish semantic navigation required.
+    </div>
+
+    <!-- Live Ambiguity Alert (Visible when Ambiguity Injected) -->
+    <div id="ambiguity-banner" class="disruption-banner" style="display: none; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+        🛑 <strong>SCENARIO C (AMBIGUITY INJECTED):</strong> Multiple conflicting targets with identical text detected. Automatic repair blocked; human approval required.
     </div>
 
     <!-- Login Modal / Screen (When not logged in) -->
@@ -44,28 +59,33 @@
                 <table cellpadding="4" cellspacing="2" border="0" class="form-table">
                     <tr>
                         <td align="right"><b>Operator ID / Email:</b></td>
-                        <td><input type="text" id="username-field" name="username" value="ops_admin@acmecorp.internal" class="classic-input" required /></td>
+                        <td><input type="text" id="username-field" name="username" value="ops_admin@acmecorp.internal"
+                                class="classic-input" required /></td>
                     </tr>
                     <tr>
                         <td align="right"><b>Vault Password:</b></td>
-                        <td><input type="password" id="password-field" name="password" value="MasterKey#2026!" class="classic-input" required /></td>
+                        <td><input type="password" id="password-field" name="password" value="MasterKey#2026!"
+                                class="classic-input" required /></td>
                     </tr>
                     <tr>
                         <td></td>
                         <td>
-                            <label><input type="checkbox" id="saved-profile-chk" checked /> Use Saved Browser Workstation Profile</label>
+                            <label><input type="checkbox" id="saved-profile-chk" checked /> Use Saved Browser
+                                Workstation Profile</label>
                         </td>
                     </tr>
                     <tr>
                         <td></td>
                         <td style="padding-top: 10px;">
-                            <button type="submit" id="btn-login-submit" class="classic-btn login-btn">Sign In to Workstation</button>
+                            <button type="submit" id="btn-login-submit" class="classic-btn login-btn">Sign In to
+                                Workstation</button>
                             <button type="reset" class="classic-btn">Reset</button>
                         </td>
                     </tr>
                 </table>
             </form>
-            <div class="footer-note">Notice: Authorized Acme Personnel Only. Activity is logged under SEC-Rule 17a-4.</div>
+            <div class="footer-note">Notice: Authorized Acme Personnel Only. Activity is logged under SEC-Rule 17a-4.
+            </div>
         </div>
     </div>
 
@@ -78,7 +98,8 @@
             <div class="window-content mfa-content">
                 <p><strong>Session Re-verification Required:</strong> Stored session profile detected.</p>
                 <p>Enter 6-digit one-time passcode or confirm workstation fingerprint:</p>
-                <input type="text" id="mfa-input" value="492-817" class="classic-input" style="font-size: 18px; letter-spacing: 4px; text-align: center; width: 140px;" />
+                <input type="text" id="mfa-input" value="492-817" class="classic-input"
+                    style="font-size: 18px; letter-spacing: 4px; text-align: center; width: 140px;" />
                 <br><br>
                 <button onclick="resolveMfa()" class="classic-btn primary-btn">Validate & Resume Session</button>
             </div>
@@ -95,7 +116,8 @@
             <span class="menu-item">Navigation</span>
             <span class="menu-item">Window</span>
             <span class="menu-item">Help (F1)</span>
-            <span class="menu-user-status">User: <strong>OPS_ADMIN</strong> | Node: <code>NY-SRV-04</code> | Session: <span id="session-timer">00:14:22</span> | <a href="#" onclick="handleLogout()">Disconnect</a></span>
+            <span class="menu-user-status">User: <strong>OPS_ADMIN</strong> | Node: <code>NY-SRV-04</code> | Session:
+                <span id="session-timer">00:14:22</span> | <a href="#" onclick="handleLogout()">Disconnect</a></span>
         </div>
 
         <div class="erp-workspace">
@@ -128,7 +150,8 @@
                         <div class="report-code">REP-2026-Q3-REG (VERSION 4.2)</div>
                         <h2 id="report-main-title">Acme Corp - Q3 Regional Sales & Revenue Ledger</h2>
                         <div class="report-meta">
-                            Generated: 2026-10-24 07:30:00 EST | Database: <code>PROD_INVENTORY_ORCL</code> | Ledger Status: <b>AUDITED</b>
+                            Generated: 2026-10-24 07:30:00 EST | Database: <code>PROD_INVENTORY_ORCL</code> | Ledger
+                            Status: <b>AUDITED</b>
                         </div>
                     </div>
 
@@ -136,7 +159,8 @@
                     <div class="dead-end-warning">
                         <span class="warning-icon">⛔</span>
                         <span class="warning-text">
-                            <strong>NOTICE:</strong> CSV / Excel direct export module is disabled on this workstation profile (Error code #EXP-991).
+                            <strong>NOTICE:</strong> CSV / Excel direct export module is disabled on this workstation
+                            profile (Error code #EXP-991).
                             Use the print buffer or manual transcription.
                         </span>
                     </div>
@@ -149,7 +173,8 @@
                         <span class="sep">|</span>
                         <span>Filter: <b>All Regions</b></span>
                         <span class="sep">|</span>
-                        <button class="classic-btn" onclick="alert('Print spooler error: LPT1 not connected.')">Print Ledger</button>
+                        <button class="classic-btn" onclick="alert('Print spooler error: LPT1 not connected.')">Print
+                            Ledger</button>
                     </div>
 
                     <!-- Paginated Data Table -->
@@ -183,11 +208,14 @@
 
                     <!-- Pagination Controls -->
                     <div id="pagination-panel" class="pagination-bar">
-                        <span id="pagination-status">Showing records <span id="page-records-range">1-3</span> of 5</span>
+                        <span id="pagination-status">Showing records <span id="page-records-range">1-3</span> of
+                            5</span>
                         <div class="pagination-buttons">
-                            <button id="btn-prev-page" class="classic-btn" onclick="prevPage()" disabled>&lt;&lt; Previous</button>
+                            <button id="btn-prev-page" class="classic-btn" onclick="prevPage()" disabled>&lt;&lt;
+                                Previous</button>
                             <span id="page-num-display" class="page-indicator">Page 1 of 2</span>
-                            <button id="btn-next-page" class="classic-btn" onclick="nextPage()">Next Page &gt;&gt;</button>
+                            <button id="btn-next-page" class="classic-btn" onclick="nextPage()">Next Page
+                                &gt;&gt;</button>
                         </div>
                     </div>
 
@@ -209,4 +237,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

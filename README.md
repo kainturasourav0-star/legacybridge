@@ -63,7 +63,7 @@ LegacyBridge is a **production-grade, AI-powered platform** that transforms agin
 - **Clerk** — Multi-tenant authentication with org-level isolation and RBAC
 - **Supabase** — PostgreSQL with Row Level Security, automated failover to in-memory store
 - **TinyFish** — Autonomous web agent for live legacy portal crawling and data extraction
-- **OpenRouter** — LLM routing across GPT-4o, Claude 3.5, and Gemini Pro
+- **Dual AI Workflow Orchestration** — Hybrid intelligence pairing **NVIDIA NIM** (`deepseek-ai/deepseek-v4.1-flash`) for enterprise navigation strategy and **OpenAI** (`gpt-4o-mini`) for schema invariant enforcement
 - **Slack** — Webhook-based drift alerts and approval notifications
 
 ---
@@ -198,9 +198,12 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Server-side only
 
-# ── AI / LLM ────────────────────────────────────────────────────────
-OPENROUTER_API_KEY=sk-or-...       # https://openrouter.ai
+# ── AI / LLM (Dual-Model Orchestration) ──────────────────────────────
+OPENAI_API_KEY=sk-proj-...         # https://platform.openai.com
+NVIDIA_API_KEY=nvapi-...           # https://build.nvidia.com (NVIDIA NIM)
+NVIDIA_MODEL=deepseek-ai/deepseek-v4.1-flash
 TINYFISH_API_KEY=tf-...            # https://agent.tinyfish.ai
+OPENROUTER_API_KEY=sk-or-...       # https://openrouter.ai
 
 # ── Optional Delivery ───────────────────────────────────────────────
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...

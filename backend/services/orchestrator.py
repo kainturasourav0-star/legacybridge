@@ -8,10 +8,11 @@ from typing import Dict, Any, Optional, AsyncGenerator
 from sqlalchemy import select, update
 from backend.database import AsyncSessionLocal
 from backend.models.models import Task, Run, RunStep, FeedCache, Approval
-from backend.adapters.tinyfish_client import get_tinyfish_client
+from backend.services.browser_agent import BrowserAgentService
+from backend.services.safety_engine import SafetyEngineService
+from backend.services.delivery_service import DestinationDeliveryService
+from backend.services.audit_service import AuditService
 from backend.adapters.llm_planner import get_llm_planner
-from backend.services.validator import DataValidatorService
-from backend.adapters.delivery_adapters import SlackDeliveryAdapter, WebhookDeliveryAdapter, SheetsDeliveryAdapter
 
 logger = logging.getLogger("legacybridge.orchestrator")
 
@@ -31,6 +32,7 @@ class OrchestrationEngine:
     @staticmethod
     async def record_step(session, run_id: str, step_name: str, status: str, message: str, details: Optional[Dict[str, Any]] = None):
         step = RunStep(
+            id=f"step-{uuid.uuid4().hex[:8]}",
             run_id=run_id,
             step_name=step_name,
             status=status,
@@ -55,8 +57,8 @@ class OrchestrationEngine:
     @classmethod
     async def execute_task_run(cls, run_id: str):
         """
-        Executes complete end-to-end task pipeline through the state machine.
-        queued -> planning -> signing_in -> navigating -> extracting -> validating -> (needs_approval) -> delivering -> succeeded
+        Executes complete end-to-end task pipeline through the coordinated microservices state machine:
+        QUEUED -> PLANNING -> NAVIGATING -> EXTRACTING -> VALIDATING -> CONFIDENCE_GATE -> (APPROVAL_REQUIRED) -> DELIVERING -> SUCCEEDED
         """
         async with AsyncSessionLocal() as session:
             # 1. Fetch Run and Task
@@ -77,9 +79,16 @@ class OrchestrationEngine:
             run.status = "planning"
             await session.commit()
 
-            # Record Planning Step
-            await cls.record_step(session, run_id, "planning", "in_progress", "Synthesizing execution plan and validating schema...")
+            await AuditService.log_event(
+                service_name="orchestrator",
+                action="run.started",
+                resource_type="run",
+                resource_id=run_id,
+                details={"task_id": task.id, "task_name": task.name}
+            )
 
+            # PHASE 1: PLANNING
+            await cls.record_step(session, run_id, "planning", "in_progress", "Synthesizing execution plan and validating schema...")
             planner = get_llm_planner()
             plan_result = await planner.plan_task(task.prompt, task.portal_url)
             goal = plan_result.get("goal", task.goal)
@@ -88,14 +97,15 @@ class OrchestrationEngine:
 
             await cls.record_step(session, run_id, "planning", "completed", "Goal and JSON schema synthesized successfully.", {"goal": goal})
 
-            # TinyFish Client
-            tf_client = get_tinyfish_client()
+            # PHASE 2: BROWSER AGENT EXECUTION
+            run.status = "navigating"
+            await session.commit()
+
             extracted_payload = None
             replay_url = None
 
-            # Stream TinyFish steps
             try:
-                async for event in tf_client.stream_automation_events(task.portal_url, goal):
+                async for event in BrowserAgentService.stream_browser_progress(task.portal_url, goal, run_id):
                     step_name = event.get("step", "navigating")
                     msg = event.get("message", "")
                     rep = event.get("replay_url")
@@ -112,12 +122,20 @@ class OrchestrationEngine:
             except Exception as e:
                 run.status = "failed"
                 run.error_message = str(e)
-                await cls.record_step(session, run_id, "agent_execution", "failed", f"TinyFish automation error: {str(e)}")
+                await cls.record_step(session, run_id, "browser_agent", "failed", f"Browser automation error: {str(e)}")
                 await session.commit()
+                await AuditService.log_event("orchestrator", "run.failed", "run", run_id, details={"error": str(e)})
                 return
 
             if not extracted_payload:
-                res_auto = await tf_client.run_automation(task.portal_url, goal)
+                res_auto = await BrowserAgentService.execute_browser_workflow(task.portal_url, goal, run_id)
+                if res_auto.get("status") == "BLOCKED":
+                    run.status = "blocked"
+                    run.error_message = res_auto.get("error")
+                    await cls.record_step(session, run_id, "security_gate", "failed", res_auto.get("error", "Blocked by security policy"))
+                    await session.commit()
+                    return
+
                 extracted_payload = res_auto.get("extracted_data")
                 replay_url = res_auto.get("replay_url", replay_url)
                 run.replay_url = replay_url
@@ -126,58 +144,75 @@ class OrchestrationEngine:
             run.status = "validating"
             await session.commit()
 
-            # 2. Validation & Quality Checks
+            # PHASE 3: RELIABILITY & SAFETY ENGINE VALIDATION
             await cls.record_step(session, run_id, "validating", "in_progress", "Executing Pydantic schema validation, null checks, and drift detection...")
 
-            # Get baseline from FeedCache if available
-            baseline = None
+            # Get historical baseline
             stmt_feed = select(FeedCache).where(FeedCache.task_id == task.id)
             res_feed = await session.execute(stmt_feed)
             feed_obj = res_feed.scalar_one_or_none()
-            if feed_obj and feed_obj.data:
-                baseline = feed_obj.data
+            baseline = feed_obj.data if feed_obj else None
 
-            validation_report = DataValidatorService.validate_payload(extracted_payload, schema, baseline)
-            run.validation_report = validation_report.model_dump()
-            run.validated_data = extracted_payload if validation_report.valid else None
+            val_report = SafetyEngineService.validate_dataset(extracted_payload, schema, baseline)
+            run.validation_report = val_report
+            run.validated_data = extracted_payload if val_report.get("valid") else None
 
             # Self-healing attempt if validation failed
-            if not validation_report.valid:
+            if not val_report.get("valid"):
                 await cls.record_step(
                     session, run_id, "self_heal", "in_progress",
-                    f"Validation failed (score: {validation_report.score}). Initiating targeted self-healing retry with validator error trace..."
+                    f"Validation failed (score: {val_report.get('score')}). Analyzing error trace for bounded recovery..."
                 )
-                heal_prompt = DataValidatorService.generate_self_heal_prompt(validation_report, goal)
-                retry_res = await tf_client.run_automation(task.portal_url, heal_prompt)
+                from backend.services.validator import DataValidatorService
+                from pydantic import BaseModel
+                class ReportShim:
+                    errors = val_report.get("errors", [])
+                heal_prompt = DataValidatorService.generate_self_heal_prompt(ReportShim(), goal)
+                retry_res = await BrowserAgentService.execute_browser_workflow(task.portal_url, heal_prompt, run_id)
                 extracted_payload = retry_res.get("extracted_data", extracted_payload)
-                validation_report = DataValidatorService.validate_payload(extracted_payload, schema, baseline)
-                run.validation_report = validation_report.model_dump()
+                val_report = SafetyEngineService.validate_dataset(extracted_payload, schema, baseline)
+                run.validation_report = val_report
                 run.extracted_data = extracted_payload
 
-                if validation_report.valid:
+                if val_report.get("valid"):
                     run.validated_data = extracted_payload
-                    await cls.record_step(session, run_id, "self_heal", "completed", "Self-healing retry succeeded! Schema invariants satisfied.")
+                    await cls.record_step(session, run_id, "self_heal", "completed", "Self-healing retry succeeded! Invariants satisfied.")
                 else:
-                    await cls.record_step(session, run_id, "self_heal", "failed", f"Self-heal was unable to reconcile schema: {validation_report.errors}")
+                    await cls.record_step(session, run_id, "self_heal", "failed", f"Self-heal was unable to reconcile schema: {val_report.get('errors')}")
 
-            if not validation_report.valid:
+            if not val_report.get("valid"):
                 run.status = "needs_review"
-                await cls.record_step(session, run_id, "validating", "failed", f"Validation flagged errors (score {validation_report.score}): {validation_report.errors}")
+                await cls.record_step(session, run_id, "validating", "failed", f"Validation flagged errors (score {val_report.get('score')}): {val_report.get('errors')}")
                 await session.commit()
                 return
 
             await cls.record_step(
                 session, run_id, "validating", "completed",
-                f"Validation passed (Trust score: {validation_report.score}%). {len(validation_report.anomalies)} anomalies flagged.",
-                {"checks": validation_report.checks, "anomalies": validation_report.anomalies}
+                f"Validation passed (Trust score: {val_report.get('score')}%). {len(val_report.get('anomalies', []))} anomalies flagged.",
+                {"checks": val_report.get("checks"), "anomalies": val_report.get("anomalies")}
             )
 
-            # 3. Check for Approval Requirement (Write Action Gate)
-            if is_write:
+            # PHASE 4: CONFIDENCE GATE EVALUATION
+            conf_gate = await SafetyEngineService.evaluate_confidence_gate(run_id, val_report)
+            await cls.record_step(
+                session, run_id, "confidence_gate",
+                "completed" if conf_gate["decision"] == "PASS" else "in_progress",
+                f"Confidence Score: {conf_gate['confidence_score']}% -> Decision: {conf_gate['decision']}. {conf_gate['explanation']}"
+            )
+
+            if conf_gate["decision"] == "REJECT":
+                run.status = "blocked"
+                run.error_message = f"Confidence gate rejection: {conf_gate['explanation']}"
+                await session.commit()
+                return
+
+            # PHASE 5: WRITE ACTION & APPROVAL GATE CHECK
+            if is_write or conf_gate["decision"] == "REVIEW_REQUIRED":
                 run.status = "needs_approval"
                 approval = Approval(
+                    id=f"appr-{uuid.uuid4().hex[:8]}",
                     run_id=run.id,
-                    action_type="WRITE_MUTATION_GATE",
+                    action_type="WRITE_MUTATION_GATE" if is_write else "CONFIDENCE_GATE_REVIEW",
                     current_payload={"status": "READ_ONLY_PORTAL", "records": 5},
                     proposed_payload=extracted_payload or {},
                     status="pending"
@@ -185,36 +220,33 @@ class OrchestrationEngine:
                 session.add(approval)
                 await cls.record_step(
                     session, run_id, "approval_gate", "in_progress",
-                    "Write action detected! Staged in Approvals Queue for human operator sign-off."
+                    f"Staged in Approvals Queue for human sign-off ({approval.action_type})."
                 )
                 await session.commit()
                 return
 
-            # 4. Delivery Phase
+            # PHASE 6: DESTINATION DELIVERY
             run.status = "delivering"
             await session.commit()
             await cls.record_step(session, run_id, "delivering", "in_progress", "Dispatching validated payload to configured destinations...")
 
-            receipts = []
             dest_types = task.destination_types or ["slack", "feed"]
             dest_cfg = task.destination_config or {}
+            receipts = []
 
-            if "slack" in dest_types:
-                ch = dest_cfg.get("slack_channel", "#ops-reports")
-                slk_res = await SlackDeliveryAdapter.deliver(ch, extracted_payload, f"{run.idempotency_key}-slack", replay_url)
-                receipts.append(slk_res.to_dict())
+            for d_type in dest_types:
+                res_deliv = await DestinationDeliveryService.deliver_payload(
+                    run_id=run.id,
+                    task_id=task.id,
+                    destination_type=d_type,
+                    destination_config=dest_cfg,
+                    validated_data=extracted_payload,
+                    idempotency_key=f"{run.idempotency_key}-{d_type}",
+                    replay_url=replay_url
+                )
+                receipts.append(res_deliv)
 
-            if "sheets" in dest_types:
-                sh_name = dest_cfg.get("sheet_name", "Q3_Sales_Master")
-                sh_res = await SheetsDeliveryAdapter.deliver(sh_name, extracted_payload, f"{run.idempotency_key}-sheets")
-                receipts.append(sh_res.to_dict())
-
-            if "webhook" in dest_types:
-                wh_url = dest_cfg.get("webhook_url", settings.DEFAULT_WEBHOOK_URL)
-                wh_res = await WebhookDeliveryAdapter.deliver(wh_url, extracted_payload, f"{run.idempotency_key}-webhook")
-                receipts.append(wh_res.to_dict())
-
-            # 5. Update Feed Cache for GET /api/v1/feeds/{task_id}/latest
+            # PHASE 7: UPDATE FEED CACHE
             if feed_obj:
                 feed_obj.latest_run_id = run.id
                 feed_obj.data = extracted_payload
@@ -239,7 +271,15 @@ class OrchestrationEngine:
             )
             await session.commit()
 
-            # Final success event
+            await AuditService.log_event(
+                service_name="orchestrator",
+                action="run.succeeded",
+                resource_type="run",
+                resource_id=run_id,
+                details={"destinations": [r["destination_type"] for r in receipts]}
+            )
+
+            # Final success event broadcast
             await broadcast_run_event(run_id, {
                 "type": "run_completed",
                 "run_id": run_id,
@@ -248,11 +288,48 @@ class OrchestrationEngine:
                 "data": extracted_payload
             })
 
+    @staticmethod
+    async def cancel_run(run_id: str, reason: str = "Operator requested cancellation") -> Dict[str, Any]:
+        """
+        Gracefully cancels an active run and records the cancellation in the audit trail.
+        """
+        async with AsyncSessionLocal() as session:
+            stmt = select(Run).where(Run.id == run_id)
+            res = await session.execute(stmt)
+            run = res.scalar_one_or_none()
+            if not run:
+                raise ValueError(f"Run {run_id} not found")
+
+            if run.status in ["succeeded", "failed", "cancelled"]:
+                return {"run_id": run.id, "status": run.status, "message": "Run already completed"}
+
+            run.status = "cancelled"
+            run.completed_at = datetime.now(timezone.utc)
+            run.error_message = reason
+
+            await OrchestrationEngine.record_step(
+                session, run_id, "cancellation", "completed", f"Run cancelled by operator. Reason: {reason}"
+            )
+            await session.commit()
+
+            await AuditService.log_event(
+                service_name="orchestrator",
+                action="run.cancelled",
+                resource_type="run",
+                resource_id=run_id,
+                details={"reason": reason}
+            )
+
+            await broadcast_run_event(run_id, {
+                "type": "run_completed",
+                "run_id": run_id,
+                "status": "cancelled",
+                "reason": reason
+            })
+
+            return {"run_id": run_id, "status": "cancelled", "reason": reason}
+
 async def run_pipeline(task_id: str) -> Optional[str]:
-    """
-    Creates a new Run for the given task_id and executes it through OrchestrationEngine.
-    Used by APScheduler and background Celery worker processors.
-    """
     async with AsyncSessionLocal() as session:
         stmt = select(Task).where(Task.id == task_id)
         res = await session.execute(stmt)
@@ -276,4 +353,3 @@ async def run_pipeline(task_id: str) -> Optional[str]:
 
     await OrchestrationEngine.execute_task_run(run_id)
     return run_id
-

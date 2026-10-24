@@ -38,3 +38,14 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if "sqlite" in db_url:
+            from sqlalchemy import text
+            for col, col_type in [
+                ("risk_level", "VARCHAR(32) DEFAULT 'LOW'"),
+                ("requires_approval", "BOOLEAN DEFAULT 0"),
+                ("is_archived", "BOOLEAN DEFAULT 0")
+            ]:
+                try:
+                    await conn.execute(text(f"ALTER TABLE tasks ADD COLUMN {col} {col_type}"))
+                except Exception:
+                    pass

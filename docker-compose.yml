@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
+      - DEMO_MODE=false
+    env_file:
+      - .env
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEMO_MODE=false
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+
+  demo-portal:
+    image: python:3.11-alpine
+    working_dir: /portal
+    volumes:
+      - ./demo-portal:/portal
+    command: python -m http.server 8080
+    ports:
+      - "8080:8080"

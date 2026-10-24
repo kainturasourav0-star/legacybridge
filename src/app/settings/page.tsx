@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   Zap,
   Server,
+  Sparkles,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -65,6 +66,8 @@ export default function SettingsPage() {
 
   const getProviderIcon = (provider: string) => {
     switch (provider) {
+      case 'nvidia':
+        return Sparkles;
       case 'tinyfish':
         return Cpu;
       case 'slack':
