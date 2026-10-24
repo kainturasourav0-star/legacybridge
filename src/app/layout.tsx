@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex min-h-screen bg-offwhite text-ink antialiased">
         <Navigation />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pt-16 md:pt-0">
           {children}
         </main>
       </body>

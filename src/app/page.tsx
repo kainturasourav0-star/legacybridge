@@ -12,12 +12,14 @@ import {
   Plus,
   DollarSign,
   TrendingUp,
-  FileCode2,
   AlertTriangle,
   RefreshCw,
   ExternalLink,
+  Layers,
+  FileCode2,
 } from 'lucide-react';
 import { Task, Run } from '@/types';
+import { SplineHeroVisual } from '@/components/SplineHeroVisual';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -143,6 +145,64 @@ export default function DashboardPage() {
           <div className="mt-3 text-2xl font-bold text-ink">${estimatedSavings}</div>
           <div className="mt-1 text-xs text-slate-500">Calculated at $38.50/hr ops rate</div>
         </div>
+      </div>
+
+      {/* Interactive Spline Architecture Hero Visualizer */}
+      <SplineHeroVisual />
+
+      {/* Feature Navigation Ribbon */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link
+          href="/tasks"
+          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
+            <Layers className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-ink">Task Library</div>
+            <div className="text-[11px] text-slate-400">View all configured pipes</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/tasks/new"
+          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
+            <Plus className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-ink">Task Builder</div>
+            <div className="text-[11px] text-slate-400">Create new extraction</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/runs"
+          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
+            <Play className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-ink">Run Console</div>
+            <div className="text-[11px] text-slate-400">Inspect live executions</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/history"
+          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
+            <Clock className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-ink">Audit Trail</div>
+            <div className="text-[11px] text-slate-400">Immutable replay records</div>
+          </div>
+        </Link>
       </div>
 
       {/* Hero Task Execution Card */}
