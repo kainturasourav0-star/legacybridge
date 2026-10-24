@@ -1,0 +1,468 @@
+/* Authentic Windows 2000 / Web 1.0 Enterprise Theme */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body.classic-erp {
+    font-family: "Tahoma", "MS Sans Serif", "Segoe UI", Arial, sans-serif;
+    font-size: 12px;
+    background-color: #3A6EA5; /* Classic Windows Teal/Steel */
+    color: #000000;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Hackathon Demo Control Bar */
+.demo-bar {
+    background-color: #111C2E;
+    color: #F5F4EF;
+    padding: 6px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0E7C6F;
+    z-index: 9999;
+    position: relative;
+}
+
+.demo-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge-danger {
+    background: #E53E3E;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+}
+
+.demo-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.demo-action-btn {
+    background: #2D3748;
+    color: #E2E8F0;
+    border: 1px solid #4A5568;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+.demo-break-btn {
+    background: #9B2C2C;
+    color: #FFF5F5;
+    border: 1px solid #FEB2B2;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.demo-break-btn:hover {
+    background: #C53030;
+}
+
+.disruption-banner {
+    background: #FFF3CD;
+    color: #856404;
+    border-bottom: 2px solid #FFEEBA;
+    padding: 8px 16px;
+    font-size: 12px;
+    text-align: center;
+    animation: pulseDisruption 1.5s infinite alternate;
+}
+
+@keyframes pulseDisruption {
+    from { background-color: #FFF3CD; }
+    to { background-color: #FFE8A1; }
+}
+
+/* Classic Windows 2000 Bevelled Window */
+.erp-window {
+    background-color: #ECE9D8;
+    border: 2px outset #FFFFFF;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+    position: absolute;
+}
+
+.login-window {
+    width: 480px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.window-titlebar {
+    background: linear-gradient(to right, #0A246A, #A6CAF0);
+    color: #FFFFFF;
+    padding: 3px 6px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.titlebar-text {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.titlebar-controls button {
+    width: 16px;
+    height: 14px;
+    font-size: 9px;
+    margin-left: 2px;
+    background: #ECE9D8;
+    border: 1px outset #fff;
+    cursor: default;
+}
+
+.window-content {
+    padding: 16px;
+}
+
+.login-header-banner {
+    border-bottom: 1px solid #999;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+}
+
+.erp-logo-art {
+    font-size: 16px;
+    font-weight: bold;
+    color: #0A246A;
+}
+
+.erp-subtitle {
+    font-size: 11px;
+    color: #555;
+}
+
+.form-table td {
+    padding: 4px;
+    font-size: 11px;
+}
+
+.classic-input {
+    background: #FFFFFF;
+    border: 2px inset #D4D0C8;
+    padding: 3px 6px;
+    font-family: inherit;
+    font-size: 12px;
+    width: 240px;
+}
+
+.classic-input:focus {
+    outline: 1px dotted #000;
+}
+
+.classic-btn {
+    background: #ECE9D8;
+    border: 2px outset #FFFFFF;
+    color: #000000;
+    padding: 3px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 6px;
+}
+
+.classic-btn:active {
+    border: 2px inset #FFFFFF;
+}
+
+.primary-btn, .login-btn {
+    font-weight: bold;
+}
+
+.footer-note {
+    margin-top: 14px;
+    font-size: 10px;
+    color: #666;
+    border-top: 1px dotted #aaa;
+    padding-top: 6px;
+}
+
+/* Main ERP App Frame */
+.erp-main-app {
+    height: calc(100vh - 42px);
+    display: flex;
+    flex-direction: column;
+    background: #ECE9D8;
+}
+
+.erp-menubar {
+    background: #ECE9D8;
+    border-bottom: 1px solid #999;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+}
+
+.menu-item {
+    cursor: pointer;
+    padding: 2px 6px;
+}
+
+.menu-item:hover {
+    background: #0A246A;
+    color: #FFF;
+}
+
+.menu-user-status {
+    margin-left: auto;
+    font-size: 11px;
+    color: #333;
+}
+
+.erp-workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    border-top: 1px solid #FFF;
+}
+
+/* Sidebar Navigation Frame */
+.erp-sidebar {
+    width: 210px;
+    background: #FFFFFF;
+    border-right: 2px inset #D4D0C8;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    background: #ECE9D8;
+    border-bottom: 1px solid #ACA899;
+    padding: 4px 8px;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.nav-tree {
+    padding: 6px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.tree-node {
+    padding: 3px 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.tree-node.branch {
+    font-weight: bold;
+}
+
+.sub-tree {
+    padding-left: 14px;
+}
+
+.tree-node.leaf:hover {
+    background: #316AC5;
+    color: #FFF;
+}
+
+.tree-node.leaf.active {
+    background: #0A246A;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+/* Content Area Frame */
+.erp-content-pane {
+    flex: 1;
+    background: #FFFFFF;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.report-header-banner {
+    border-bottom: 2px solid #0A246A;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.report-code {
+    font-size: 10px;
+    color: #666;
+    font-family: monospace;
+}
+
+.report-header-banner h2 {
+    font-size: 18px;
+    color: #0A246A;
+    margin: 2px 0 4px 0;
+}
+
+.report-meta {
+    font-size: 11px;
+    color: #555;
+}
+
+/* CSV-less dead end banner */
+.dead-end-warning {
+    background: #FFF8E7;
+    border: 1px solid #ECC94B;
+    border-left: 4px solid #D69E2E;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #744210;
+}
+
+.warning-icon {
+    font-size: 16px;
+}
+
+.report-toolbar {
+    background: #ECE9D8;
+    border: 1px solid #999;
+    padding: 4px 8px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sep {
+    color: #aaa;
+}
+
+.table-scroll-wrap {
+    overflow-x: auto;
+    border: 2px inset #D4D0C8;
+    margin-bottom: 10px;
+}
+
+.erp-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FFFFFF;
+    font-size: 11px;
+}
+
+.erp-data-table th {
+    background: #ECE9D8;
+    border: 1px outset #FFFFFF;
+    padding: 5px 8px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.erp-data-table td {
+    border: 1px solid #D4D0C8;
+    padding: 5px 8px;
+}
+
+.erp-data-table tr:nth-child(even) {
+    background-color: #F7F7F7;
+}
+
+.erp-data-table tr:hover {
+    background-color: #E8F0FE;
+}
+
+.total-row td {
+    background: #EFEFEF;
+    border-top: 2px solid #000;
+}
+
+.badge-reconciled {
+    background: #2E7D32;
+    color: #FFF;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 2px;
+}
+
+.pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ECE9D8;
+    border: 1px solid #999;
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.page-indicator {
+    padding: 0 8px;
+    font-weight: bold;
+}
+
+/* Status Bar */
+.erp-statusbar {
+    height: 22px;
+    background: #ECE9D8;
+    border-top: 2px groove #FFFFFF;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+}
+
+.status-cell {
+    border: 1px inset #FFFFFF;
+    padding: 1px 8px;
+    margin: 1px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+}
+
+.cell-ready {
+    flex: 1;
+}
+
+.cell-caps, .cell-num {
+    width: 48px;
+    text-align: center;
+    color: #666;
+}
+
+/* MFA Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mfa-window {
+    position: relative;
+    width: 380px;
+    text-align: center;
+}
+
+.mfa-content {
+    line-height: 1.6;
+}

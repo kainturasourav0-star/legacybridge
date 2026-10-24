@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Acme Inventory & Supply Chain Suite v4.2</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="classic-erp">
+    <!-- Top Hackathon Demo Control Bar -->
+    <div id="hackathon-control-bar" class="demo-bar">
+        <div class="demo-bar-left">
+            <span class="badge-danger">LEGACY PORTAL SIMULATOR</span>
+            <span class="demo-title">Acme Inventory Enterprise v4.2.1 (Build 2004)</span>
+        </div>
+        <div class="demo-bar-right">
+            <button id="toggle-mfa-btn" onclick="toggleMfaModal()" class="demo-action-btn">Simulate Session Expiry / MFA</button>
+            <button id="break-ui-btn" onclick="toggleBreakUi()" class="demo-break-btn">
+                <span id="break-ui-indicator">🔴</span> <span id="break-ui-text">Break the UI (Test Agent Resilience)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Live UI Disruption Alert (Visible when Broken) -->
+    <div id="disruption-banner" class="disruption-banner" style="display: none;">
+        ⚠️ <strong>DOM MUTATION INJECTED:</strong> Menus moved, button IDs randomized, semantic labels altered. Traditional CSS/XPath selector scrapers WILL fail here. TinyFish uses semantic visual LLM navigation.
+    </div>
+
+    <!-- Login Modal / Screen (When not logged in) -->
+    <div id="login-container" class="erp-window login-window">
+        <div class="window-titlebar">
+            <span class="titlebar-text">Acme ERP Suite v4.2 - Workstation Logon</span>
+            <div class="titlebar-controls">
+                <button disabled>_</button>
+                <button disabled>[]</button>
+                <button disabled>X</button>
+            </div>
+        </div>
+        <div class="window-content login-content">
+            <div class="login-header-banner">
+                <div class="erp-logo-art">🏛️ ACME CORP SYSTEMS</div>
+                <div class="erp-subtitle">Inventory & Enterprise Resource Planning (Client 4.2.18)</div>
+            </div>
+            <form id="erp-login-form" onsubmit="handleLogin(event)">
+                <table cellpadding="4" cellspacing="2" border="0" class="form-table">
+                    <tr>
+                        <td align="right"><b>Operator ID / Email:</b></td>
+                        <td><input type="text" id="username-field" name="username" value="ops_admin@acmecorp.internal" class="classic-input" required /></td>
+                    </tr>
+                    <tr>
+                        <td align="right"><b>Vault Password:</b></td>
+                        <td><input type="password" id="password-field" name="password" value="MasterKey#2026!" class="classic-input" required /></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <label><input type="checkbox" id="saved-profile-chk" checked /> Use Saved Browser Workstation Profile</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td style="padding-top: 10px;">
+                            <button type="submit" id="btn-login-submit" class="classic-btn login-btn">Sign In to Workstation</button>
+                            <button type="reset" class="classic-btn">Reset</button>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <div class="footer-note">Notice: Authorized Acme Personnel Only. Activity is logged under SEC-Rule 17a-4.</div>
+        </div>
+    </div>
+
+    <!-- MFA / Session Timeout Modal -->
+    <div id="mfa-modal" class="modal-overlay" style="display: none;">
+        <div class="erp-window mfa-window">
+            <div class="window-titlebar">
+                <span class="titlebar-text">Acme Authenticator - Security Checkpoint</span>
+            </div>
+            <div class="window-content mfa-content">
+                <p><strong>Session Re-verification Required:</strong> Stored session profile detected.</p>
+                <p>Enter 6-digit one-time passcode or confirm workstation fingerprint:</p>
+                <input type="text" id="mfa-input" value="492-817" class="classic-input" style="font-size: 18px; letter-spacing: 4px; text-align: center; width: 140px;" />
+                <br><br>
+                <button onclick="resolveMfa()" class="classic-btn primary-btn">Validate & Resume Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main ERP Desktop (Visible when logged in) -->
+    <div id="erp-main-app" class="erp-main-app" style="display: none;">
+        <!-- Classic Top Menu Bar -->
+        <div class="erp-menubar">
+            <span class="menu-item">File</span>
+            <span class="menu-item">Edit</span>
+            <span class="menu-item">View</span>
+            <span class="menu-item">Navigation</span>
+            <span class="menu-item">Window</span>
+            <span class="menu-item">Help (F1)</span>
+            <span class="menu-user-status">User: <strong>OPS_ADMIN</strong> | Node: <code>NY-SRV-04</code> | Session: <span id="session-timer">00:14:22</span> | <a href="#" onclick="handleLogout()">Disconnect</a></span>
+        </div>
+
+        <div class="erp-workspace">
+            <!-- Sidebar Navigation Frame -->
+            <div id="sidebar-frame" class="erp-sidebar">
+                <div class="sidebar-header">Module Explorer</div>
+                <div id="navigation-tree" class="nav-tree">
+                    <div class="tree-node branch">📁 Warehouse Mgmt</div>
+                    <div class="tree-node branch">📁 Catalog & SKUs</div>
+                    <div class="tree-node branch">📁 Purchasing & POs</div>
+                    <div id="nav-reports-branch" class="tree-node branch open">
+                        <span id="label-reports-folder">📂 Reports & Audits</span>
+                        <div id="nav-reports-subitems" class="sub-tree">
+                            <div class="tree-node leaf" onclick="switchView('inventory-turns')">📄 Inventory Turns</div>
+                            <div class="tree-node leaf" onclick="switchView('low-stock')">📄 Low Stock Alerts</div>
+                            <div id="nav-q3-sales-node" class="tree-node leaf active" onclick="switchView('q3-sales')">
+                                <span id="label-q3-report">📊 Q3 Regional Sales Ledger</span>
+                            </div>
+                            <div class="tree-node leaf" onclick="switchView('audit')">📄 Annual Compliance</div>
+                        </div>
+                    </div>
+                    <div class="tree-node branch">📁 System Admin</div>
+                </div>
+            </div>
+
+            <!-- Content Area Frame -->
+            <div id="content-frame" class="erp-content-pane">
+                <div id="report-view-container" class="report-container">
+                    <div class="report-header-banner">
+                        <div class="report-code">REP-2026-Q3-REG (VERSION 4.2)</div>
+                        <h2 id="report-main-title">Acme Corp - Q3 Regional Sales & Revenue Ledger</h2>
+                        <div class="report-meta">
+                            Generated: 2026-10-24 07:30:00 EST | Database: <code>PROD_INVENTORY_ORCL</code> | Ledger Status: <b>AUDITED</b>
+                        </div>
+                    </div>
+
+                    <!-- The CSV-less Dead End Banner -->
+                    <div class="dead-end-warning">
+                        <span class="warning-icon">⛔</span>
+                        <span class="warning-text">
+                            <strong>NOTICE:</strong> CSV / Excel direct export module is disabled on this workstation profile (Error code #EXP-991).
+                            Use the print buffer or manual transcription.
+                        </span>
+                    </div>
+
+                    <!-- Filter Toolbar -->
+                    <div class="report-toolbar">
+                        <span>Fiscal Period: <b>Q3 2026</b></span>
+                        <span class="sep">|</span>
+                        <span>Currency: <b>USD ($)</b></span>
+                        <span class="sep">|</span>
+                        <span>Filter: <b>All Regions</b></span>
+                        <span class="sep">|</span>
+                        <button class="classic-btn" onclick="alert('Print spooler error: LPT1 not connected.')">Print Ledger</button>
+                    </div>
+
+                    <!-- Paginated Data Table -->
+                    <div class="table-scroll-wrap">
+                        <table id="sales-data-table" class="erp-data-table" border="1" cellpadding="6" cellspacing="0">
+                            <thead>
+                                <tr id="table-header-row">
+                                    <th>Region</th>
+                                    <th>SKU</th>
+                                    <th>Product Name</th>
+                                    <th>Units Sold</th>
+                                    <th>Unit Price</th>
+                                    <th>Gross Revenue ($)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-table-body">
+                                <!-- Populated dynamically by app.js -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="3"><strong>TOTAL (All Regions)</strong></td>
+                                    <td id="footer-total-units"><strong>15,440</strong></td>
+                                    <td>-</td>
+                                    <td id="footer-total-revenue"><strong>$404,950.00</strong></td>
+                                    <td><span class="badge-reconciled">RECONCILED</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="pagination-panel" class="pagination-bar">
+                        <span id="pagination-status">Showing records <span id="page-records-range">1-3</span> of 5</span>
+                        <div class="pagination-buttons">
+                            <button id="btn-prev-page" class="classic-btn" onclick="prevPage()" disabled>&lt;&lt; Previous</button>
+                            <span id="page-num-display" class="page-indicator">Page 1 of 2</span>
+                            <button id="btn-next-page" class="classic-btn" onclick="nextPage()">Next Page &gt;&gt;</button>
+                        </div>
+                    </div>
+
+                    <!-- Embedded Hidden API feed representation for direct verification -->
+                    <div id="raw-erp-export-json" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classic Windows 2000 Status Bar -->
+        <div class="erp-statusbar">
+            <div class="status-cell cell-ready">READY</div>
+            <div class="status-cell">Server: 192.168.1.104</div>
+            <div class="status-cell">Encryption: 128-bit RC4</div>
+            <div class="status-cell cell-caps">CAPS</div>
+            <div class="status-cell cell-num">NUM</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
