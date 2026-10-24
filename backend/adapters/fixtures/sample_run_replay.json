@@ -1,0 +1,69 @@
+{
+  "run_id": "tf-run-q3-sales-real-2026",
+  "status": "COMPLETED",
+  "goal": "Sign in to Acme Inventory v4.2, navigate Reports -> Q3 Regional Sales, extract table rows across pagination, return structured JSON.",
+  "replay_url": "https://agent.tinyfish.ai/replays/rf-demo-q3-acme-78192a",
+  "browser_metadata": {
+    "viewport": {"width": 1280, "height": 800},
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) TinyFishAgent/2.4",
+    "pages_visited": 3,
+    "actions_taken": 8
+  },
+  "extracted_data": {
+    "report_title": "Acme Inventory Q3 Regional Sales Performance",
+    "period": "Q3 2026",
+    "items": [
+      {
+        "region": "North America",
+        "sku": "ACM-8812",
+        "product_name": "UltraSensor Pro",
+        "units_sold": 4120,
+        "unit_price": 25.0,
+        "revenue": 103000.0
+      },
+      {
+        "region": "Europe West",
+        "sku": "ACM-9941",
+        "product_name": "HydraValves X",
+        "units_sold": 2840,
+        "unit_price": 30.0,
+        "revenue": 85200.0
+      },
+      {
+        "region": "Asia Pacific",
+        "sku": "ACM-4410",
+        "product_name": "OptiRelay 400",
+        "units_sold": 6190,
+        "unit_price": 25.0,
+        "revenue": 154750.0
+      },
+      {
+        "region": "Latin America",
+        "sku": "ACM-2298",
+        "product_name": "MicroActuator G2",
+        "units_sold": 1340,
+        "unit_price": 25.0,
+        "revenue": 33500.0
+      },
+      {
+        "region": "Middle East",
+        "sku": "ACM-1104",
+        "product_name": "ThermalFuse Max",
+        "units_sold": 950,
+        "unit_price": 30.0,
+        "revenue": 28500.0
+      }
+    ],
+    "total_revenue": 404950.0
+  },
+  "execution_timeline": [
+    {"event": "browser_initialized", "timestamp_offset_ms": 250, "description": "Cloud browser session spawned in secure sandbox"},
+    {"event": "credentials_injected", "timestamp_offset_ms": 900, "description": "Vault credentials injected into login form fields"},
+    {"event": "session_authenticated", "timestamp_offset_ms": 1800, "description": "Authenticated successfully. Workstation session established"},
+    {"event": "menu_navigated", "timestamp_offset_ms": 2900, "description": "Clicked Reports & Audits -> Q3 Regional Sales Ledger"},
+    {"event": "table_scraped_page_1", "timestamp_offset_ms": 3800, "description": "Extracted rows 1 to 3 from Page 1"},
+    {"event": "pagination_clicked", "timestamp_offset_ms": 4700, "description": "Semantic vision identified 'Next Page' action and clicked"},
+    {"event": "table_scraped_page_2", "timestamp_offset_ms": 5500, "description": "Extracted rows 4 to 5 from Page 2"},
+    {"event": "run_completed", "timestamp_offset_ms": 6100, "description": "All 5 records extracted and structured into JSON"}
+  ]
+}
