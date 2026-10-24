@@ -6,6 +6,9 @@ import { DataValidator } from '@/lib/validation';
 import { DeliveryService } from '@/lib/delivery';
 import { Run, RunEvent } from '@/types';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getAuthenticatedUser();

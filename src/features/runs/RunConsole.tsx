@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -21,8 +21,10 @@ export function RunConsole({ runId }: { runId: string }) {
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
   const [pollingActive, setPollingActive] = useState(true);
+  const [approvalComments, setApprovalComments] = useState('');
+  const [decidingApproval, setDecidingApproval] = useState(false);
 
-  const fetchRun = async () => {
+  const fetchRun = useCallback(async () => {
     try {
       const res = await fetch(`/api/runs/${runId}`);
       if (res.ok) {
@@ -37,7 +39,7 @@ export function RunConsole({ runId }: { runId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [runId]);
 
   useEffect(() => {
     fetchRun();
@@ -46,7 +48,7 @@ export function RunConsole({ runId }: { runId: string }) {
       interval = setInterval(fetchRun, 1500);
     }
     return () => clearInterval(interval);
-  }, [runId, pollingActive]);
+  }, [fetchRun, pollingActive]);
 
   if (loading && !run) {
     return (
@@ -64,9 +66,6 @@ export function RunConsole({ runId }: { runId: string }) {
       </div>
     );
   }
-
-  const [approvalComments, setApprovalComments] = useState('');
-  const [decidingApproval, setDecidingApproval] = useState(false);
 
   const handleApprovalDecision = async (decision: 'approved' | 'rejected') => {
     try {
