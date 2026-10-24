@@ -143,6 +143,20 @@ export async function dbCreateTask(task: Task): Promise<Task> {
   return task;
 }
 
+export async function dbDeleteTask(taskId: string, userId: string): Promise<boolean> {
+  if (supabase) {
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId);
+    if (error) throw error;
+    return true;
+  }
+  const task = inMemoryStore.tasks.get(taskId);
+  if (!task) return false;
+  if (task.userId !== userId && !(userId === 'user_hackathon_demo_lead' && task.userId === 'user_hackathon_demo_lead')) {
+    throw new Error('Forbidden: You do not own this task');
+  }
+  return inMemoryStore.tasks.delete(taskId);
+}
+
 export async function dbGetRuns(userId: string, taskId?: string): Promise<Run[]> {
   if (supabase) {
     let q = supabase.from('runs').select('*').eq('user_id', userId).order('started_at', { ascending: false });
