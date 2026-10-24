@@ -12,7 +12,7 @@ $task = Invoke-RestMethod -Uri "http://localhost:3000/api/tasks" -Method Post -B
 Write-Host "Created Task: $($task.id)"
 
 $run = Invoke-RestMethod -Uri "http://localhost:3000/api/tasks/$($task.id)/run" -Method Post
-Write-Host "Run executed: $($run.id) | Status: $($run.status) | Validation passed: $($run.validationReport.passed)"
+Write-Host "Run executed: $($run.id) | Status: $($run.status) | Validation passed: $($run.validationReport.valid)"
 
 Write-Host "`n=== 2. TEST INSTANT FEED ==="
 $feed = Invoke-RestMethod -Uri "http://localhost:3000/api/feeds/$($task.id)/latest" -Method Get
