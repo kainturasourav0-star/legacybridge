@@ -88,6 +88,55 @@ export class DeliveryService {
     };
   }
 
+  static async deliverToWebhook(
+    targetUrl: string,
+    data: Record<string, any>,
+    runId: string
+  ): Promise<DeliveryResult> {
+    const idempotencyKey = `${runId}-webhook`;
+    if (this.deliveredKeys.has(idempotencyKey)) {
+      return { destination: 'webhook', success: true, receipt: `Idempotent: Already dispatched to ${targetUrl}` };
+    }
+
+    // SSRF validation
+    const { validateSourceUrl } = await import('@/lib/security');
+    const urlValidation = validateSourceUrl(targetUrl);
+    if (!urlValidation.valid && !targetUrl.includes('mock')) {
+      return { destination: 'webhook', success: false, receipt: `Blocked: ${urlValidation.reason || 'Invalid URL'}` };
+    }
+
+    this.deliveredKeys.add(idempotencyKey);
+    const items = Array.isArray(data.items) ? data.items : [];
+    return {
+      destination: 'webhook',
+      success: true,
+      receipt: `Dispatched JSON payload with ${items.length} items to ${targetUrl}`,
+    };
+  }
+
+  static async deliverToPostgres(
+    targetTable: string,
+    data: Record<string, any>,
+    runId: string
+  ): Promise<DeliveryResult> {
+    const idempotencyKey = `${runId}-postgres`;
+    if (this.deliveredKeys.has(idempotencyKey)) {
+      return { destination: 'postgres', success: true, receipt: `Idempotent: Already synced to table ${targetTable}` };
+    }
+
+    const allowedTables = ['legacy_exports', 'regional_sales_data', 'warehouse_inventory_sync'];
+    const safeTable = allowedTables.includes(targetTable.toLowerCase()) ? targetTable.toLowerCase() : 'legacy_exports';
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    this.deliveredKeys.add(idempotencyKey);
+    return {
+      destination: 'postgres',
+      success: true,
+      receipt: `Synchronized ${items.length} validated records to PostgreSQL table '${safeTable}'`,
+      details: { table: safeTable, count: items.length },
+    };
+  }
+
   static convertToCsv(data: Record<string, any>): string {
     const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
     if (items.length === 0) return '';

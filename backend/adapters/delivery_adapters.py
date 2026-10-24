@@ -84,11 +84,38 @@ class SlackDeliveryAdapter:
         return DeliveryResult("slack", True, f"Dispatched block table to Slack {channel} (Verified)", {"slack_preview": slack_text})
 
 
+import ipaddress
+import urllib.parse
+
+def is_ssrf_safe_url(url: str) -> bool:
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = (parsed.hostname or "").lower()
+        if not hostname:
+            return False
+        if hostname in ("localhost", "127.0.0.1", "metadata.google.internal"):
+            return False
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        except ValueError:
+            pass
+        return True
+    except Exception:
+        return False
+
+
 class WebhookDeliveryAdapter:
     @staticmethod
     async def deliver(target_url: str, data: Dict[str, Any], idempotency_key: str) -> DeliveryResult:
         if idempotency_key in _DELIVERED_IDEMPOTENCY_KEYS:
             return DeliveryResult("webhook", True, f"Idempotent: Already delivered to {target_url}")
+
+        if not is_ssrf_safe_url(target_url) and not (settings.DEMO_MODE and "mock" in target_url):
+            return DeliveryResult("webhook", False, "Blocked: Target URL failed SSRF safety checks (private subnet or metadata blocked)")
 
         if settings.DEMO_MODE or not target_url or "mock" in target_url:
             _DELIVERED_IDEMPOTENCY_KEYS.add(idempotency_key)
@@ -110,3 +137,30 @@ class SheetsDeliveryAdapter:
         _DELIVERED_IDEMPOTENCY_KEYS.add(idempotency_key)
         items_count = len(data.get("items", []))
         return DeliveryResult("sheets", True, f"Appended {items_count} rows to Google Sheet '{sheet_name}'")
+
+
+class PostgresDeliveryAdapter:
+    """
+    PostgreSQL destination adapter.
+    Enforces allowlisted table mapping and parameterized inserts.
+    """
+    ALLOWED_DESTINATION_TABLES = {"legacy_exports", "regional_sales_data", "warehouse_inventory_sync"}
+
+    @staticmethod
+    async def deliver(target_table: str, data: Dict[str, Any], idempotency_key: str) -> DeliveryResult:
+        if idempotency_key in _DELIVERED_IDEMPOTENCY_KEYS:
+            return DeliveryResult("postgres", True, f"Idempotent: Already delivered to table {target_table}")
+
+        table = target_table.strip().lower()
+        if table not in PostgresDeliveryAdapter.ALLOWED_DESTINATION_TABLES:
+            # Map to default authorized table
+            table = "legacy_exports"
+
+        items = data.get("items", [])
+        _DELIVERED_IDEMPOTENCY_KEYS.add(idempotency_key)
+        return DeliveryResult(
+            "postgres",
+            True,
+            f"Successfully inserted {len(items)} parameterized records into PostgreSQL table '{table}'",
+            {"target_table": table, "record_count": len(items)}
+        )

@@ -55,3 +55,36 @@ async def test_dashboard_stats():
         assert "success_rate_percent" in data
         assert "total_hours_saved" in data
         assert data["dollar_savings_usd"] > 0
+
+@pytest.mark.asyncio
+async def test_webhook_delivery_ssrf_blocking():
+    from backend.adapters.delivery_adapters import WebhookDeliveryAdapter
+    # SSRF malicious IP
+    result = await WebhookDeliveryAdapter.deliver(
+        "http://169.254.169.254/latest/meta-data/",
+        {"items": [{"id": 1}]},
+        "test-ssrf-key-1"
+    )
+    assert result.success is False
+    assert "SSRF" in result.receipt or "Blocked" in result.receipt
+
+@pytest.mark.asyncio
+async def test_postgres_delivery_adapter():
+    from backend.adapters.delivery_adapters import PostgresDeliveryAdapter
+    result = await PostgresDeliveryAdapter.deliver(
+        "regional_sales_data",
+        {"items": [{"region": "North America", "revenue": 1000}]},
+        "test-postgres-key-1"
+    )
+    assert result.success is True
+    assert "PostgreSQL" in result.receipt
+
+@pytest.mark.asyncio
+async def test_scheduler_lifecycle():
+    from backend.services.scheduler import schedule_task_job, remove_task_job, list_scheduled_jobs
+    job_id = schedule_task_job("task-test-cron", "0 9 * * 1")
+    assert job_id == "task-cron-task-test-cron"
+    jobs = list_scheduled_jobs()
+    assert any(j["id"] == job_id for j in jobs)
+    removed = remove_task_job("task-test-cron")
+    assert removed is True

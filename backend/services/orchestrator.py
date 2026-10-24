@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, AsyncGenerator
 
@@ -246,3 +247,33 @@ class OrchestrationEngine:
                 "replay_url": replay_url,
                 "data": extracted_payload
             })
+
+async def run_pipeline(task_id: str) -> Optional[str]:
+    """
+    Creates a new Run for the given task_id and executes it through OrchestrationEngine.
+    Used by APScheduler and background Celery worker processors.
+    """
+    async with AsyncSessionLocal() as session:
+        stmt = select(Task).where(Task.id == task_id)
+        res = await session.execute(stmt)
+        task = res.scalar_one_or_none()
+        if not task:
+            logger.error(f"Cannot run pipeline: task {task_id} not found")
+            return None
+
+        run_id = f"run-cron-{uuid.uuid4().hex[:8]}"
+        run = Run(
+            id=run_id,
+            task_id=task.id,
+            status="queued",
+            trigger_type="schedule",
+            idempotency_key=f"idem-{run_id}",
+            time_saved_minutes=120.0 if not task.is_write_action else 45.0,
+            started_at=datetime.now(timezone.utc)
+        )
+        session.add(run)
+        await session.commit()
+
+    await OrchestrationEngine.execute_task_run(run_id)
+    return run_id
+
