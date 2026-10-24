@@ -139,6 +139,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const sht = await DeliveryService.deliverToSheets(sheet, tfResult.extractedData!, runId);
       deliveryOutcome = sht.success ? 'delivered' : 'failed';
       deliveryReceipt = sht.receipt;
+    } else if (task.destinationType === 'webhook') {
+      const webhookUrl = task.destinationConfig?.webhookUrl || process.env.DEFAULT_WEBHOOK_URL || 'https://webhook.site/mock-target';
+      const wh = await DeliveryService.deliverToWebhook(webhookUrl, tfResult.extractedData!, runId);
+      deliveryOutcome = wh.success ? 'delivered' : 'failed';
+      deliveryReceipt = wh.receipt;
+    } else if (task.destinationType === 'postgres') {
+      const table = task.destinationConfig?.targetTable || 'legacy_exports';
+      const pg = await DeliveryService.deliverToPostgres(table, tfResult.extractedData!, runId);
+      deliveryOutcome = pg.success ? 'delivered' : 'failed';
+      deliveryReceipt = pg.receipt;
     } else {
       deliveryReceipt = 'Ready for immediate CSV/JSON download';
     }

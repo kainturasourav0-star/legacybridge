@@ -18,8 +18,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const task = await dbGetTaskById(run.taskId, user.userId);
     const dest = task?.destinationType || 'slack';
     const channel = task?.destinationConfig?.slackChannel || '#ops-reports';
+    const manualKey = `${run.id}-manual-deliver`;
 
-    const deliveryResult = await DeliveryService.deliverToSlack(channel, run.validatedData, `${run.id}-manual-deliver`, run.replayUrl);
+    let deliveryResult;
+    if (dest === 'slack') {
+      deliveryResult = await DeliveryService.deliverToSlack(channel, run.validatedData, manualKey, run.replayUrl);
+    } else if (dest === 'sheets') {
+      const sheet = task?.destinationConfig?.sheetName || 'LegacyBridge_Export';
+      deliveryResult = await DeliveryService.deliverToSheets(sheet, run.validatedData, manualKey);
+    } else if (dest === 'webhook') {
+      const webhookUrl = task?.destinationConfig?.webhookUrl || process.env.DEFAULT_WEBHOOK_URL || 'https://webhook.site/mock-target';
+      deliveryResult = await DeliveryService.deliverToWebhook(webhookUrl, run.validatedData, manualKey);
+    } else if (dest === 'postgres') {
+      const table = task?.destinationConfig?.targetTable || 'legacy_exports';
+      deliveryResult = await DeliveryService.deliverToPostgres(table, run.validatedData, manualKey);
+    } else {
+      deliveryResult = { destination: 'csv', success: true, receipt: 'Validated records prepared for CSV export' };
+    }
 
     await dbAddRunEvent({
       id: `evt-${Date.now()}`,

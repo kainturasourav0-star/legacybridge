@@ -99,7 +99,7 @@ export class DeliveryService {
     }
 
     // SSRF validation
-    const { validateSourceUrl } = await import('@/lib/security');
+    const { validateSourceUrl } = await import('../security');
     const urlValidation = validateSourceUrl(targetUrl);
     if (!urlValidation.valid && !targetUrl.includes('mock')) {
       return { destination: 'webhook', success: false, receipt: `Blocked: ${urlValidation.reason || 'Invalid URL'}` };

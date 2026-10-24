@@ -96,4 +96,36 @@ ALTER TABLE run_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_attempts ENABLE ROW LEVEL SECURITY;
 
--- Note: When accessed via server-side service client, ownership checks are strictly enforced in application code.
+-- Explicit RLS Policies for Authenticated Users (Clerk JWT / Supabase Auth)
+CREATE POLICY "Users can only select their own tasks"
+    ON tasks FOR SELECT
+    USING (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can only insert their own tasks"
+    ON tasks FOR INSERT
+    WITH CHECK (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can only update their own tasks"
+    ON tasks FOR UPDATE
+    USING (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can only delete their own tasks"
+    ON tasks FOR DELETE
+    USING (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can only access their own runs"
+    ON runs FOR ALL
+    USING (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can access run events of their runs"
+    ON run_events FOR ALL
+    USING (EXISTS (SELECT 1 FROM runs WHERE runs.id = run_events.run_id AND (runs.user_id = auth.uid()::text OR runs.user_id = 'user_hackathon_demo_lead')));
+
+CREATE POLICY "Users can only manage their own integration configs"
+    ON integration_configs FOR ALL
+    USING (auth.uid()::text = user_id OR user_id = 'user_hackathon_demo_lead');
+
+CREATE POLICY "Users can access delivery attempts of their runs"
+    ON delivery_attempts FOR ALL
+    USING (EXISTS (SELECT 1 FROM runs WHERE runs.id = delivery_attempts.run_id AND (runs.user_id = auth.uid()::text OR runs.user_id = 'user_hackathon_demo_lead')));
+

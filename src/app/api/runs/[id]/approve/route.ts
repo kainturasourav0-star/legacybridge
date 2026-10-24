@@ -59,13 +59,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let deliveryReceipt = '';
     const dest = task?.destinationType || 'slack';
     const channel = task?.destinationConfig?.slackChannel || '#ops-reports';
+    const payload = run.validatedData || run.extractedData || {};
 
     if (dest === 'slack') {
-      const slk = await DeliveryService.deliverToSlack(channel, run.validatedData || run.extractedData || {}, run.id, run.replayUrl);
+      const slk = await DeliveryService.deliverToSlack(channel, payload, run.id, run.replayUrl);
       deliveryOutcome = slk.success ? 'delivered' : 'failed';
       deliveryReceipt = slk.receipt;
+    } else if (dest === 'sheets') {
+      const sheet = task?.destinationConfig?.sheetName || 'LegacyBridge_Export';
+      const sht = await DeliveryService.deliverToSheets(sheet, payload, run.id);
+      deliveryOutcome = sht.success ? 'delivered' : 'failed';
+      deliveryReceipt = sht.receipt;
+    } else if (dest === 'webhook') {
+      const webhookUrl = task?.destinationConfig?.webhookUrl || process.env.DEFAULT_WEBHOOK_URL || 'https://webhook.site/mock-target';
+      const wh = await DeliveryService.deliverToWebhook(webhookUrl, payload, run.id);
+      deliveryOutcome = wh.success ? 'delivered' : 'failed';
+      deliveryReceipt = wh.receipt;
+    } else if (dest === 'postgres') {
+      const table = task?.destinationConfig?.targetTable || 'legacy_exports';
+      const pg = await DeliveryService.deliverToPostgres(table, payload, run.id);
+      deliveryOutcome = pg.success ? 'delivered' : 'failed';
+      deliveryReceipt = pg.receipt;
     } else {
-      deliveryReceipt = 'Delivery dispatched';
+      deliveryReceipt = 'Delivery dispatched and ready for export';
     }
 
     await dbAddRunEvent({

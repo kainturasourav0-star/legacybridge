@@ -18,11 +18,12 @@ export interface Task {
   goal: string;
   sourceUrl: string;
   expectedSchema: Record<string, any>;
-  destinationType: 'slack' | 'sheets' | 'csv';
+  destinationType: 'slack' | 'sheets' | 'csv' | 'webhook' | 'postgres';
   destinationConfig: {
     slackChannel?: string;
     sheetName?: string;
     webhookUrl?: string;
+    targetTable?: string;
   };
   scheduleCron?: string | null;
   scheduleHuman?: string | null;
