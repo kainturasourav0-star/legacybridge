@@ -16,7 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Run } from '@/types';
-import { DeliveryService } from '@/lib/delivery';
+import { convertToCsv } from '@/lib/utils/csv';
 
 export function ResultsExplorer({ runId }: { runId: string }) {
   const [run, setRun] = useState<Run | null>(null);
@@ -46,7 +46,7 @@ export function ResultsExplorer({ runId }: { runId: string }) {
   };
 
   const handleDownloadCsv = () => {
-    const csvContent = DeliveryService.convertToCsv(data);
+    const csvContent = convertToCsv(data);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

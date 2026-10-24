@@ -7,6 +7,24 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
+  fullstack-test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+      - name: Run Vitest Unit & Security Tests
+        run: |
+          npm test
+      - name: Next.js Production Build
+        run: |
+          npm run build
+
   backend-test:
     runs-on: ubuntu-latest
     steps:
@@ -22,22 +40,4 @@ jobs:
           pip install -r requirements.txt
       - name: Run Pytest
         run: |
-          cd backend
-          pytest tests -v
-
-  frontend-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci || npm install
-      - name: Typecheck and Build
-        run: |
-          cd frontend
-          npm run build
+          pytest backend/tests -v

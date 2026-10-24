@@ -65,10 +65,89 @@ export function RunConsole({ runId }: { runId: string }) {
     );
   }
 
+  const [approvalComments, setApprovalComments] = useState('');
+  const [decidingApproval, setDecidingApproval] = useState(false);
+
+  const handleApprovalDecision = async (decision: 'approved' | 'rejected') => {
+    try {
+      setDecidingApproval(true);
+      const res = await fetch(`/api/runs/${runId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, comments: approvalComments }),
+      });
+      if (res.ok) {
+        await fetchRun();
+      }
+    } catch (e) {
+      console.error('Failed to submit approval decision:', e);
+    } finally {
+      setDecidingApproval(false);
+    }
+  };
+
   const events: RunEvent[] = run.events || [];
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
+      {/* Human Approval Required Gate Banner */}
+      {run.status === 'needs_approval' && (
+        <div className="bg-amber-50 rounded-card border-2 border-amber p-6 shadow-card space-y-4">
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 rounded-full bg-amber/20 text-amber-dark flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-amber-dark" />
+            </div>
+            <div className="space-y-1 flex-1">
+              <div className="text-xs font-semibold text-amber-dark uppercase tracking-wider">
+                Human-in-the-Loop Sign-Off Required (Pillar 2: APPROVE)
+              </div>
+              <h2 className="text-lg font-bold text-ink font-serif">
+                Write Action Gate: Staged Mutation Awaiting Authorization
+              </h2>
+              <p className="text-xs text-slate-700">
+                This task includes state-modifying actions. In accordance with zero-trust governance, changes are staged below and will not be committed until you grant approval.
+              </p>
+            </div>
+          </div>
+
+          {/* Proposed Payload Staging View */}
+          <div className="p-3 bg-white rounded-lg border border-amber/30 text-xs font-mono">
+            <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">Staged Mutation Payload:</div>
+            <pre className="text-slate-800 overflow-x-auto max-h-40">
+              {JSON.stringify(run.extractedData || run.validatedData, null, 2)}
+            </pre>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <input
+              type="text"
+              value={approvalComments}
+              onChange={(e) => setApprovalComments(e.target.value)}
+              placeholder="Operator sign-off note (e.g. Verified reorder threshold adjustment with procurement)"
+              className="flex-1 px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-amber/40"
+            />
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={() => handleApprovalDecision('approved')}
+                disabled={decidingApproval}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{decidingApproval ? 'Committing...' : 'Approve & Commit Mutation'}</span>
+              </button>
+              <button
+                onClick={() => handleApprovalDecision('rejected')}
+                disabled={decidingApproval}
+                className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
+              >
+                <AlertCircle className="w-4 h-4" />
+                <span>Reject Action</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Run Header Banner */}
       <div className="bg-surface rounded-card border border-slate-200/80 p-6 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

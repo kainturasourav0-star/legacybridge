@@ -14,6 +14,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    // Check active concurrent executions for this user
+    const existingRuns = await dbGetRuns(user.userId);
+    const activeRuns = existingRuns.filter((r) => r.status === 'running' || r.status === 'validating');
+    if (activeRuns.length >= 2) {
+      return NextResponse.json(
+        { error: 'Concurrency limit reached: Maximum 2 concurrent automation runs per user. Please wait for active runs to complete.' },
+        { status: 429 }
+      );
+    }
+
     const runId = `run-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const isDemo = process.env.DEMO_MODE === 'true' || !tinyFishClient.isConfigured();
 

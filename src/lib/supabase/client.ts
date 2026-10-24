@@ -117,7 +117,7 @@ export async function dbGetTasks(userId: string): Promise<Task[]> {
     const { data } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     return (data as any) || [];
   }
-  return Array.from(inMemoryStore.tasks.values()).filter(t => t.userId === userId || userId === 'user_hackathon_demo_lead');
+  return Array.from(inMemoryStore.tasks.values()).filter(t => t.userId === userId || (userId === 'user_hackathon_demo_lead' && t.userId === 'user_hackathon_demo_lead'));
 }
 
 export async function dbGetTaskById(taskId: string, userId: string): Promise<Task | null> {
@@ -126,7 +126,11 @@ export async function dbGetTaskById(taskId: string, userId: string): Promise<Tas
     return (data as any) || null;
   }
   const task = inMemoryStore.tasks.get(taskId);
-  return task || null;
+  if (!task) return null;
+  if (task.userId !== userId && !(userId === 'user_hackathon_demo_lead' && task.userId === 'user_hackathon_demo_lead')) {
+    return null;
+  }
+  return task;
 }
 
 export async function dbCreateTask(task: Task): Promise<Task> {
@@ -146,7 +150,7 @@ export async function dbGetRuns(userId: string, taskId?: string): Promise<Run[]>
     const { data } = await q;
     return (data as any) || [];
   }
-  let runs = Array.from(inMemoryStore.runs.values()).filter(r => r.userId === userId || userId === 'user_hackathon_demo_lead');
+  let runs = Array.from(inMemoryStore.runs.values()).filter(r => r.userId === userId || (userId === 'user_hackathon_demo_lead' && r.userId === 'user_hackathon_demo_lead'));
   if (taskId) runs = runs.filter(r => r.taskId === taskId);
   return runs.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 }
@@ -158,6 +162,9 @@ export async function dbGetRunById(runId: string, userId: string): Promise<Run |
   }
   const run = inMemoryStore.runs.get(runId);
   if (!run) return null;
+  if (run.userId !== userId && !(userId === 'user_hackathon_demo_lead' && run.userId === 'user_hackathon_demo_lead')) {
+    return null;
+  }
   const events = inMemoryStore.events.get(runId) || [];
   return { ...run, events };
 }
@@ -172,14 +179,19 @@ export async function dbCreateRun(run: Run): Promise<Run> {
   return run;
 }
 
-export async function dbUpdateRun(runId: string, updates: Partial<Run>): Promise<Run> {
+export async function dbUpdateRun(runId: string, updates: Partial<Run>, userId?: string): Promise<Run> {
   if (supabase) {
-    const { data, error } = await supabase.from('runs').update(updates).eq('id', runId).select().single();
+    let q = supabase.from('runs').update(updates).eq('id', runId);
+    if (userId) q = q.eq('user_id', userId);
+    const { data, error } = await q.select().single();
     if (error) throw error;
     return data as any;
   }
   const existing = inMemoryStore.runs.get(runId);
   if (!existing) throw new Error('Run not found');
+  if (userId && existing.userId !== userId && !(userId === 'user_hackathon_demo_lead' && existing.userId === 'user_hackathon_demo_lead')) {
+    throw new Error('Forbidden: You do not own this run record');
+  }
   const updated = { ...existing, ...updates };
   inMemoryStore.runs.set(runId, updated);
   return updated;

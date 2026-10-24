@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { dbGetTasks, dbCreateTask } from '@/lib/supabase/client';
 import { CreateTaskSchema } from '@/lib/validation';
-import { validateSourceUrl } from '@/lib/security';
+import { validateSourceUrl, sanitizeText } from '@/lib/security';
 import { Task } from '@/types';
 
 export async function GET() {
@@ -33,14 +33,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: urlCheck.reason }, { status: 400 });
     }
 
+    // Security check: sanitize natural language prompt against prompt-injection
+    const cleanPrompt = sanitizeText(prompt);
+    const cleanName = sanitizeText(name);
+
     // Synthesize structured goal from natural language prompt
-    const goal = `Navigate to ${sourceUrl}. Execute instruction: "${prompt}". Authenticate if required, traverse navigation menus, paginate across all data tables, and extract records conforming to schema.`;
+    const goal = `Navigate to ${sourceUrl}. Execute instruction: "${cleanPrompt}". Authenticate if required, traverse navigation menus, paginate across all data tables, and extract records conforming to schema.`;
 
     const newTask: Task = {
       id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       userId: user.userId,
-      name,
-      prompt,
+      name: cleanName,
+      prompt: cleanPrompt,
       goal,
       sourceUrl,
       expectedSchema: Object.keys(expectedSchema).length > 0 ? expectedSchema : {
