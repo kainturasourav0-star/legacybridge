@@ -7,19 +7,17 @@ import {
   Play,
   Save,
   Globe,
-  Send,
   Calendar,
-  Layers,
-  CheckCircle,
-  HelpCircle,
+  Layers3,
   Code2,
   AlertCircle,
-  ShieldCheck,
   Zap,
   AlignLeft,
-  FileSpreadsheet,
   Database,
-  ArrowRight
+  ArrowRight,
+  Hash,
+  Table2,
+  Webhook,
 } from 'lucide-react';
 
 export function TaskBuilder() {
@@ -28,7 +26,7 @@ export function TaskBuilder() {
   const [prompt, setPrompt] = useState('');
   const [sourceUrl, setSourceUrl] = useState('http://localhost:8080');
   const [destinationType, setDestinationType] = useState<'slack' | 'sheets' | 'csv' | 'webhook' | 'postgres'>('slack');
-  
+
   // Destination specific fields
   const [slackChannel, setSlackChannel] = useState('#ops-reports');
   const [sheetName, setSheetName] = useState('Q3_Sales_Master');
@@ -108,24 +106,33 @@ export function TaskBuilder() {
         )
       );
     } else if (presetKey === 'reorder') {
-      setName('Acme ERP Stock Level Reorder Adjustment');
-      setPrompt('Navigate to inventory management, locate SKU-9042 with stock under 15 units, and adjust the reorder threshold to 50.');
+      setName('Weekly Below-Threshold Stock Trigger');
+      setPrompt('Navigate to Inventory Levels, identify all items with Available Quantity less than Safety Stock, and update reorder records.');
       setSourceUrl('http://localhost:8080');
-      setDestinationType('slack');
-      setSlackChannel('#warehouse-alerts');
-      setScheduleHuman('On-demand manual trigger');
+      setDestinationType('webhook');
+      setWebhookUrl('https://api.acmelogistics.internal/procurement/webhook');
+      setScheduleHuman('Every Monday at 9:00 AM');
       setIsWriteAction(true);
       setSchemaText(
         JSON.stringify(
           {
             type: 'object',
-            required: ['sku', 'previous_threshold', 'new_threshold', 'approved_by'],
+            required: ['exceptions_found', 'items'],
             properties: {
-              sku: { type: 'string' },
-              item_name: { type: 'string' },
-              previous_threshold: { type: 'integer' },
-              new_threshold: { type: 'integer' },
-              approved_by: { type: 'string' },
+              exceptions_found: { type: 'integer' },
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['part_number', 'description', 'current_stock', 'safety_threshold'],
+                  properties: {
+                    part_number: { type: 'string' },
+                    description: { type: 'string' },
+                    current_stock: { type: 'integer' },
+                    safety_threshold: { type: 'integer' },
+                  },
+                },
+              },
             },
           },
           null,
@@ -133,35 +140,33 @@ export function TaskBuilder() {
         )
       );
     } else if (presetKey === 'supplier') {
-      setName('Supplier PO Batch Ingestion');
-      setPrompt('Extract all pending purchase orders from the procurement frameset and dispatch structured JSON to our webhook endpoint.');
+      setName('Active Vendor Invoice Monitor');
+      setPrompt('Check pending vendor payments for the current accounting period and export the table to our Google Sheet.');
       setSourceUrl('http://localhost:8080');
-      setDestinationType('webhook');
-      setWebhookUrl('https://webhook.site/mock-target');
-      setScheduleHuman('Hourly at :00');
+      setDestinationType('sheets');
+      setSheetName('Vendor_Audit_Master');
+      setScheduleHuman('Daily at 6:45 AM');
       setIsWriteAction(false);
       setSchemaText(
         JSON.stringify(
           {
             type: 'object',
-            required: ['po_batch_id', 'items', 'total_po_value'],
+            required: ['invoice_count', 'invoices'],
             properties: {
-              po_batch_id: { type: 'string' },
-              vendor: { type: 'string' },
-              items: {
+              invoice_count: { type: 'integer' },
+              invoices: {
                 type: 'array',
                 items: {
                   type: 'object',
-                  required: ['po_number', 'vendor', 'amount', 'status'],
+                  required: ['invoice_id', 'vendor_name', 'amount_due', 'due_date'],
                   properties: {
-                    po_number: { type: 'string' },
-                    vendor: { type: 'string' },
-                    amount: { type: 'number' },
-                    status: { type: 'string' },
+                    invoice_id: { type: 'string' },
+                    vendor_name: { type: 'string' },
+                    amount_due: { type: 'string' },
+                    due_date: { type: 'string' },
                   },
                 },
               },
-              total_po_value: { type: 'number' },
             },
           },
           null,
@@ -177,37 +182,38 @@ export function TaskBuilder() {
       setSchemaText(JSON.stringify(parsed, null, 2));
       setError(null);
     } catch {
-      setError('Invalid JSON: Cannot format. Please correct syntax.');
+      setError('Invalid JSON schema format. Please verify syntax.');
     }
   };
 
-  const handleSaveOrRun = async (shouldRunImmediately: boolean) => {
+  const handleSaveOrRun = async (runNow: boolean) => {
     setError(null);
     if (!name.trim()) {
-      setError('Please provide a task name');
+      setError('Task name is required.');
       return;
     }
-    if (!prompt.trim() || prompt.length < 10) {
-      setError('Please provide a descriptive natural-language instruction (at least 10 characters)');
+    if (!prompt.trim()) {
+      setError('Plain-English goal prompt is required.');
       return;
     }
 
-    let parsedSchema = {};
+    let parsedSchema: any;
     try {
       parsedSchema = JSON.parse(schemaText);
     } catch {
-      setError('Output Schema must be valid JSON');
+      setError('Expected JSON schema is invalid syntax.');
       return;
     }
 
-    const destinationConfig: Record<string, string> = {};
-    if (destinationType === 'slack') destinationConfig.slackChannel = slackChannel;
-    if (destinationType === 'sheets') destinationConfig.sheetName = sheetName;
-    if (destinationType === 'webhook') destinationConfig.webhookUrl = webhookUrl;
-    if (destinationType === 'postgres') destinationConfig.targetTable = targetTable;
+    setLoading(true);
+
+    const destinationConfig: Record<string, any> = {};
+    if (destinationType === 'slack') destinationConfig.channel = slackChannel;
+    if (destinationType === 'sheets') destinationConfig.spreadsheetId = sheetName;
+    if (destinationType === 'webhook') destinationConfig.url = webhookUrl;
+    if (destinationType === 'postgres') destinationConfig.table = targetTable;
 
     try {
-      setLoading(true);
       const res = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,237 +230,195 @@ export function TaskBuilder() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to save task');
+        throw new Error('Failed to create task definition.');
       }
 
       const task = await res.json();
 
-      if (shouldRunImmediately) {
+      if (runNow) {
         const runRes = await fetch(`/api/tasks/${task.id}/run`, { method: 'POST' });
         const run = await runRes.json();
         router.push(`/runs/${run.id}`);
       } else {
         router.push('/tasks');
       }
-    } catch (e: any) {
-      setError(e.message || 'An error occurred while creating task');
-    } finally {
+    } catch (err: any) {
+      setError(err.message || 'System error occurred while creating task.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-800/60">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-mono font-medium mb-3">
-            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-            <span>NATURAL LANGUAGE COMPILER</span>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[#8b95ff] text-xs font-mono font-medium mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>TASK BUILDER STUDIO</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-sans font-extrabold text-white tracking-tight">
-            Task Formulation Studio
+          <h1 className="text-3xl md:text-4xl font-sans font-semibold text-[#f7f8f8] tracking-tight">
+            Configure Web Automation
           </h1>
-          <p className="text-sm md:text-base text-slate-400 mt-2 max-w-2xl font-normal leading-relaxed">
-            Formulate plain-English browser workflows with Pydantic invariant synthesis and target destinations.
+          <p className="text-sm md:text-base text-[#8a8f98] mt-2 max-w-2xl font-normal leading-relaxed">
+            Translate plain-English instructions into resilient browser actions and mathematical validation contracts.
           </p>
         </div>
 
-        {/* Template Selector Pills */}
-        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-          <span className="text-xs text-slate-400 font-mono hidden lg:inline">Templates:</span>
+        {/* Quick Presets */}
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-[#5d626b] font-mono mr-1 hidden sm:inline">PRESETS:</span>
           <button
             type="button"
             onClick={() => loadPreset('sales')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-semibold transition border border-teal-500/30"
+            className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[#c7c9cc] hover:text-white text-xs font-mono transition"
           >
-            <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-            <span>Acme Q3 Sales</span>
+            Q3 Sales
           </button>
           <button
             type="button"
             onClick={() => loadPreset('reorder')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold transition border border-amber-500/30"
+            className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[#c7c9cc] hover:text-white text-xs font-mono transition"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            <span>Approval Write Gate</span>
+            Stock Trigger
           </button>
           <button
             type="button"
             onClick={() => loadPreset('supplier')}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold transition border border-indigo-500/30"
+            className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[#c7c9cc] hover:text-white text-xs font-mono transition"
           >
-            <Zap className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Supplier Ingest</span>
+            Vendor Invoices
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-sm flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-400" />
-          <div>
-            <div className="font-bold text-white">Validation Error</div>
-            <div className="mt-0.5 text-xs text-rose-200">{error}</div>
-          </div>
+        <div className="p-3.5 rounded-lg bg-[#e05252]/10 border border-[#e05252]/30 text-[#e05252] text-xs flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Form Inputs */}
+      {/* Main Studio Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Form Configuration */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-5">
-            {/* Task Name */}
+          <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-6 space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider mb-2">
                 Task Identifier Name
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Q3 Regional Sales Extraction & Ops Report"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
+                placeholder="e.g. Acme ERP Q3 Sales by Region"
+                className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition"
               />
             </div>
 
-            {/* Natural Language Prompt */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                Plain-English Task Instruction
+              <label className="block text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#8b95ff]" />
+                <span>Plain-English Agent Goal</span>
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what the agent should find and extract from the legacy portal..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition leading-relaxed"
+                placeholder="Describe what the TinyFish cloud browser should click, navigate, extract, or input..."
+                className="w-full px-3.5 py-2.5 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition leading-relaxed"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
-                Example: &ldquo;Open the inventory portal, pull Q3 sales by region and post the table to #ops-reports.&rdquo;
-              </p>
             </div>
 
-            {/* Source Website URL */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                <Globe className="w-3.5 h-3.5 text-slate-400" />
-                <span>Source Legacy Portal URL</span>
+              <label className="block text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+                <Globe className="w-3.5 h-3.5 text-[#5d626b]" />
+                <span>Target Web Portal URL</span>
               </label>
               <input
                 type="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="http://localhost:8080"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm font-mono text-teal-300 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
+                className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition font-mono"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
-                Authorized test targets: Localhost Acme ERP (<code className="font-mono text-slate-400">http://localhost:8080</code>) or public HTTPS portals.
-              </p>
             </div>
 
-            {/* Delivery Destination Selector */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                  <Send className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Delivery Destination</span>
-                </label>
-                <select
-                  value={destinationType}
-                  onChange={(e) => setDestinationType(e.target.value as any)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
-                >
-                  <option value="slack">Slack Channel Webhook</option>
-                  <option value="sheets">Google Sheets (Service Account)</option>
-                  <option value="webhook">Custom Webhook Endpoint (REST)</option>
-                  <option value="postgres">PostgreSQL / Supabase Database</option>
-                  <option value="csv">Direct CSV / JSON Download</option>
-                </select>
+            {/* Destination Selection */}
+            <div>
+              <label className="block text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider mb-2">
+                Delivery Destination
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { id: 'slack', label: 'Slack', icon: Hash },
+                  { id: 'sheets', label: 'Google Sheets', icon: Table2 },
+                  { id: 'webhook', label: 'Webhook', icon: Webhook },
+                  { id: 'postgres', label: 'PostgreSQL', icon: Database },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setDestinationType(id as any)}
+                    className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center justify-center space-y-1.5 transition ${
+                      destinationType === id
+                        ? 'border-[#8b95ff] bg-[#5e6ad2]/12 text-[#f7f8f8]'
+                        : 'border-white/[0.08] bg-black/40 text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
 
-              {/* Dynamic Contextual Destination Config Field */}
-              <div>
+              {/* Destination Specific Target Field */}
+              <div className="mt-3">
                 {destinationType === 'slack' && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Slack Channel Name
-                    </label>
-                    <input
-                      type="text"
-                      value={slackChannel}
-                      onChange={(e) => setSlackChannel(e.target.value)}
-                      placeholder="#ops-reports"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
-                    />
-                  </>
+                  <input
+                    type="text"
+                    value={slackChannel}
+                    onChange={(e) => setSlackChannel(e.target.value)}
+                    placeholder="#ops-reports"
+                    className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition font-mono"
+                  />
                 )}
-
                 {destinationType === 'sheets' && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Spreadsheet Tab / Name
-                    </label>
-                    <input
-                      type="text"
-                      value={sheetName}
-                      onChange={(e) => setSheetName(e.target.value)}
-                      placeholder="Q3_Sales_Master"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
-                    />
-                  </>
+                  <input
+                    type="text"
+                    value={sheetName}
+                    onChange={(e) => setSheetName(e.target.value)}
+                    placeholder="Q3_Sales_Master"
+                    className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition font-mono"
+                  />
                 )}
-
                 {destinationType === 'webhook' && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Target Webhook URL
-                    </label>
-                    <input
-                      type="url"
-                      value={webhookUrl}
-                      onChange={(e) => setWebhookUrl(e.target.value)}
-                      placeholder="https://api.yourcompany.com/v1/ingest"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition font-mono text-xs"
-                    />
-                  </>
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://api.yourcompany.com/v1/ingest"
+                    className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition font-mono"
+                  />
                 )}
-
                 {destinationType === 'postgres' && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Target Table Name
-                    </label>
-                    <input
-                      type="text"
-                      value={targetTable}
-                      onChange={(e) => setTargetTable(e.target.value)}
-                      placeholder="inventory_orders"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition font-mono"
-                    />
-                  </>
-                )}
-
-                {destinationType === 'csv' && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Export Format
-                    </label>
-                    <div className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-xs text-slate-300 flex items-center justify-between">
-                      <span>RFC 4180 CSV + Raw JSON</span>
-                      <span className="text-teal-400 font-mono font-bold">READY</span>
-                    </div>
-                  </>
+                  <input
+                    type="text"
+                    value={targetTable}
+                    onChange={(e) => setTargetTable(e.target.value)}
+                    placeholder="inventory_orders"
+                    className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition font-mono"
+                  />
                 )}
               </div>
             </div>
 
             {/* Schedule & Write Gate */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800/60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-white/[0.06]">
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <label className="block text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#5d626b]" />
                   <span>Recurrence Schedule</span>
                 </label>
                 <input
@@ -462,48 +426,49 @@ export function TaskBuilder() {
                   value={scheduleHuman}
                   onChange={(e) => setScheduleHuman(e.target.value)}
                   placeholder="e.g. Every weekday at 7:30 AM"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 transition"
+                  className="w-full px-3.5 py-2 rounded-lg border border-white/[0.08] bg-black/40 text-xs text-[#f7f8f8] placeholder-[#5d626b] focus:outline-none focus:border-[#8b95ff] transition"
                 />
               </div>
 
-              <div className="flex items-center pt-4 sm:pt-6">
-                <label className="relative flex items-start space-x-3 cursor-pointer group">
+              <div className="flex items-center pt-3 sm:pt-6">
+                <label className="relative flex items-start space-x-2.5 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={isWriteAction}
                     onChange={(e) => setIsWriteAction(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-teal-500 focus:ring-teal-500/30 mt-0.5"
+                    className="w-4 h-4 rounded border-white/[0.2] bg-black text-[#8b95ff] focus:ring-0 mt-0.5"
                   />
                   <div className="text-xs">
-                    <span className="font-bold text-white group-hover:text-teal-300 transition-colors">
+                    <span className="font-semibold text-[#f7f8f8] group-hover:text-[#8b95ff] transition-colors">
                       Require Human Approval Gate
                     </span>
-                    <span className="block text-slate-400 mt-0.5">Enable for state-modifying actions or inventory edits.</span>
+                    <span className="block text-[11px] text-[#5d626b] mt-0.5">
+                      Enable for state-modifying actions or inventory edits.
+                    </span>
                   </div>
                 </label>
               </div>
             </div>
           </div>
 
-          {/* Editable JSON Schema View with Format Button */}
-          <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-3">
+          {/* JSON Schema View */}
+          <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-6 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <Code2 className="w-3.5 h-3.5 text-teal-400" />
-                <span>Expected Output JSON Schema (Pydantic Invariant)</span>
+              <label className="text-[11px] font-mono text-[#8a8f98] uppercase tracking-wider flex items-center space-x-1.5">
+                <Code2 className="w-3.5 h-3.5 text-[#8b95ff]" />
+                <span>Expected Output JSON Schema</span>
               </label>
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={formatJson}
-                  className="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 hover:text-white transition flex items-center space-x-1"
-                  title="Format and validate JSON indentation"
+                  className="px-2.5 py-1 rounded-md border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[11px] text-[#8a8f98] hover:text-white transition flex items-center space-x-1"
                 >
-                  <AlignLeft className="w-3 h-3 text-teal-400" />
-                  <span>Format JSON</span>
+                  <AlignLeft className="w-3 h-3" />
+                  <span>Format</span>
                 </button>
-                <span className="text-[11px] text-teal-400 font-mono px-2 py-0.5 rounded bg-teal-500/10 border border-teal-500/30">
-                  Pydantic v2 Compliant
+                <span className="text-[10px] text-[#4daf73] font-mono px-2 py-0.5 rounded bg-[#4daf73]/10 border border-[#4daf73]/25">
+                  Pydantic v2
                 </span>
               </div>
             </div>
@@ -511,59 +476,59 @@ export function TaskBuilder() {
               rows={8}
               value={schemaText}
               onChange={(e) => setSchemaText(e.target.value)}
-              className="w-full p-4 rounded-xl border border-slate-800 bg-slate-950 font-mono text-xs text-teal-300 focus:outline-none focus:ring-1 focus:ring-teal-500/40 focus:border-teal-500 leading-relaxed"
+              className="w-full p-3 rounded-lg border border-white/[0.08] bg-black font-mono text-xs text-[#8b95ff] focus:outline-none focus:border-[#8b95ff] leading-relaxed"
             />
-            <p className="text-xs text-slate-500">
-              The agent extraction must strictly conform to these invariants; failure triggers the self-healing correction loop.
+            <p className="text-[11px] text-[#5d626b]">
+              The agent extraction strictly conforms to these invariants; failure triggers quarantine.
             </p>
           </div>
         </div>
 
         {/* Right Col: Live Preview & Action Bar */}
         <div className="space-y-6">
-          <div className="rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-6 shadow-2xl shadow-black/40 space-y-5">
-            <div className="flex items-center space-x-2 text-white font-bold text-base border-b border-slate-800 pb-3">
-              <Zap className="w-4 h-4 text-teal-400" />
+          <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-6 space-y-4">
+            <div className="flex items-center space-x-2 text-[#f7f8f8] font-semibold text-sm border-b border-white/[0.07] pb-3">
+              <Zap className="w-4 h-4 text-[#8b95ff]" />
               <span>Execution Plan Preview</span>
             </div>
-            <div className="space-y-4 text-xs">
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <div className="text-slate-400 font-medium">Browser Agent Provider</div>
-                <div className="text-white font-semibold mt-1">TinyFish Cloud Agent (v1/automation)</div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                <div className="text-[#5d626b] text-[11px]">Browser Agent Provider</div>
+                <div className="text-[#f7f8f8] font-medium mt-0.5">TinyFish Cloud Agent (v1/automation)</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <div className="text-slate-400 font-medium">Validation Strategy</div>
-                <div className="text-white font-semibold mt-1">Strict Schema + 5% Null Limit + Drift Check</div>
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                <div className="text-[#5d626b] text-[11px]">Validation Strategy</div>
+                <div className="text-[#f7f8f8] font-medium mt-0.5">Strict Schema + Null Check + Anti-Drift</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <div className="text-slate-400 font-medium">Delivery Mode</div>
-                <div className="text-white font-semibold mt-1 capitalize">Idempotent {destinationType.toUpperCase()} Adapter</div>
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                <div className="text-[#5d626b] text-[11px]">Delivery Mode</div>
+                <div className="text-[#f7f8f8] font-medium mt-0.5 capitalize">{destinationType.toUpperCase()} Adapter</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <div className="text-slate-400 font-medium">Hero REST Endpoint</div>
-                <div className="text-teal-400 font-mono mt-1 break-all">GET /api/feeds/:id/latest</div>
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                <div className="text-[#5d626b] text-[11px]">Hero REST Endpoint</div>
+                <div className="text-[#8b95ff] font-mono mt-0.5 break-all">GET /api/feeds/:id/latest</div>
               </div>
             </div>
 
-            <div className="pt-2 space-y-3">
+            <div className="pt-2 space-y-2.5">
               <button
                 type="button"
                 onClick={() => handleSaveOrRun(true)}
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold text-sm transition flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/20 active:scale-95 disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#f7f8f8] hover:bg-white text-[#08090a] font-semibold text-xs transition flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50"
               >
-                <Play className="w-4 h-4 fill-slate-950" />
-                <span>{loading ? 'Processing...' : 'Save & Run Task Immediately'}</span>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>{loading ? 'Processing…' : 'Save & Run Now'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSaveOrRun(false)}
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-semibold text-sm transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full py-2 px-4 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[#c7c9cc] font-medium text-xs transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
               >
-                <Save className="w-4 h-4" />
-                <span>Save Task to Catalog</span>
+                <Save className="w-3.5 h-3.5" />
+                <span>Save to Task Catalog</span>
               </button>
             </div>
           </div>

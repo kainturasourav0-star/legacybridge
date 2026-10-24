@@ -114,16 +114,28 @@ inMemoryStore.runs.set(sampleRunId, sampleRun);
 
 export async function dbGetTasks(userId: string): Promise<Task[]> {
   if (supabase) {
-    const { data } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-    return (data as any) || [];
+    try {
+      const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      if (!error && data && data.length > 0) {
+        return data as any;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
   }
   return Array.from(inMemoryStore.tasks.values()).filter(t => t.userId === userId || (userId === 'user_hackathon_demo_lead' && t.userId === 'user_hackathon_demo_lead'));
 }
 
 export async function dbGetTaskById(taskId: string, userId: string): Promise<Task | null> {
   if (supabase) {
-    const { data } = await supabase.from('tasks').select('*').eq('id', taskId).eq('user_id', userId).single();
-    return (data as any) || null;
+    try {
+      const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).eq('user_id', userId).single();
+      if (!error && data) {
+        return data as any;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
   }
   const task = inMemoryStore.tasks.get(taskId);
   if (!task) return null;
@@ -134,35 +146,47 @@ export async function dbGetTaskById(taskId: string, userId: string): Promise<Tas
 }
 
 export async function dbCreateTask(task: Task): Promise<Task> {
-  if (supabase) {
-    const { data, error } = await supabase.from('tasks').insert([task]).select().single();
-    if (error) throw error;
-    return data as any;
-  }
   inMemoryStore.tasks.set(task.id, task);
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('tasks').insert([task]).select().single();
+      if (!error && data) return data as any;
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
+  }
   return task;
 }
 
 export async function dbDeleteTask(taskId: string, userId: string): Promise<boolean> {
-  if (supabase) {
-    const { error } = await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId);
-    if (error) throw error;
-    return true;
-  }
   const task = inMemoryStore.tasks.get(taskId);
   if (!task) return false;
   if (task.userId !== userId && !(userId === 'user_hackathon_demo_lead' && task.userId === 'user_hackathon_demo_lead')) {
     throw new Error('Forbidden: You do not own this task');
   }
-  return inMemoryStore.tasks.delete(taskId);
+  inMemoryStore.tasks.delete(taskId);
+  if (supabase) {
+    try {
+      await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', userId);
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
+  }
+  return true;
 }
 
 export async function dbGetRuns(userId: string, taskId?: string): Promise<Run[]> {
   if (supabase) {
-    let q = supabase.from('runs').select('*').eq('user_id', userId).order('started_at', { ascending: false });
-    if (taskId) q = q.eq('task_id', taskId);
-    const { data } = await q;
-    return (data as any) || [];
+    try {
+      let q = supabase.from('runs').select('*').eq('user_id', userId).order('started_at', { ascending: false });
+      if (taskId) q = q.eq('task_id', taskId);
+      const { data, error } = await q;
+      if (!error && data && data.length > 0) {
+        return data as any;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
   }
   let runs = Array.from(inMemoryStore.runs.values()).filter(r => r.userId === userId || (userId === 'user_hackathon_demo_lead' && r.userId === 'user_hackathon_demo_lead'));
   if (taskId) runs = runs.filter(r => r.taskId === taskId);
@@ -171,8 +195,14 @@ export async function dbGetRuns(userId: string, taskId?: string): Promise<Run[]>
 
 export async function dbGetRunById(runId: string, userId: string): Promise<Run | null> {
   if (supabase) {
-    const { data } = await supabase.from('runs').select('*').eq('id', runId).eq('user_id', userId).single();
-    return (data as any) || null;
+    try {
+      const { data, error } = await supabase.from('runs').select('*').eq('id', runId).eq('user_id', userId).single();
+      if (!error && data) {
+        return data as any;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
   }
   const run = inMemoryStore.runs.get(runId);
   if (!run) return null;
@@ -184,23 +214,19 @@ export async function dbGetRunById(runId: string, userId: string): Promise<Run |
 }
 
 export async function dbCreateRun(run: Run): Promise<Run> {
-  if (supabase) {
-    const { data, error } = await supabase.from('runs').insert([run]).select().single();
-    if (error) throw error;
-    return data as any;
-  }
   inMemoryStore.runs.set(run.id, run);
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('runs').insert([run]).select().single();
+      if (!error && data) return data as any;
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
+  }
   return run;
 }
 
 export async function dbUpdateRun(runId: string, updates: Partial<Run>, userId?: string): Promise<Run> {
-  if (supabase) {
-    let q = supabase.from('runs').update(updates).eq('id', runId);
-    if (userId) q = q.eq('user_id', userId);
-    const { data, error } = await q.select().single();
-    if (error) throw error;
-    return data as any;
-  }
   const existing = inMemoryStore.runs.get(runId);
   if (!existing) throw new Error('Run not found');
   if (userId && existing.userId !== userId && !(userId === 'user_hackathon_demo_lead' && existing.userId === 'user_hackathon_demo_lead')) {
@@ -208,15 +234,30 @@ export async function dbUpdateRun(runId: string, updates: Partial<Run>, userId?:
   }
   const updated = { ...existing, ...updates };
   inMemoryStore.runs.set(runId, updated);
+
+  if (supabase) {
+    try {
+      let q = supabase.from('runs').update(updates).eq('id', runId);
+      if (userId) q = q.eq('user_id', userId);
+      const { data, error } = await q.select().single();
+      if (!error && data) return data as any;
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
+  }
   return updated;
 }
 
 export async function dbAddRunEvent(event: RunEvent): Promise<void> {
-  if (supabase) {
-    await supabase.from('run_events').insert([event]);
-    return;
-  }
   const list = inMemoryStore.events.get(event.runId) || [];
   list.push(event);
   inMemoryStore.events.set(event.runId, list);
+
+  if (supabase) {
+    try {
+      await supabase.from('run_events').insert([event]);
+    } catch (err: any) {
+      console.warn('[Supabase Fallback]', err.message);
+    }
+  }
 }

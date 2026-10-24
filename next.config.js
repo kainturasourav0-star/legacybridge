@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false, // Disables 'x-powered-by: Next.js' header for fingerprint obfuscation
+  productionBrowserSourceMaps: false, // Prevents leaking internal TypeScript/React source maps in production bundles
   async headers() {
     return [
       {
@@ -24,7 +26,11 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
         ],
       },

@@ -2,23 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import {
-  ShieldCheck,
   ExternalLink,
   Lock,
-  Key,
-  Server,
-  Send,
-  FileSpreadsheet,
-  CheckCircle2,
-  AlertCircle,
   RefreshCw,
-  Zap,
   Activity,
   Cpu,
   Database,
   Code2,
-  Copy,
-  Check
+  CheckCircle2,
+  KeyRound,
+  Send,
+  FileSpreadsheet,
+  Zap,
+  Server,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -27,7 +23,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; latencyMs: number; message: string }>>({});
-  const [copiedEnv, setCopiedEnv] = useState(false);
 
   const fetchIntegrations = () => {
     setLoading(true);
@@ -88,62 +83,61 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-800/60">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-mono font-medium mb-3">
-            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[#8b95ff] text-xs font-mono font-medium mb-3">
+            <KeyRound className="w-3.5 h-3.5 text-[#8b95ff]" />
             <span>VAULT & CREDENTIAL INFRASTRUCTURE</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-sans font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-sans font-semibold text-[#f7f8f8] tracking-tight">
             Integrations & Credentials Vault
           </h1>
-          <p className="text-sm md:text-base text-slate-400 mt-2 max-w-2xl font-normal leading-relaxed">
+          <p className="text-sm md:text-base text-[#8a8f98] mt-2 max-w-2xl font-normal leading-relaxed">
             Secure, zero-exposure credential references for TinyFish cloud browser agents, Slack, Google Sheets, and databases.
           </p>
         </div>
 
         <button
           onClick={fetchIntegrations}
-          className="p-2.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white transition shadow-sm self-start md:self-auto"
+          className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] text-[#8a8f98] hover:text-white transition shadow-sm self-start md:self-auto"
           title="Refresh Integration Status"
+          type="button"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-400' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#8b95ff]' : ''}`} />
         </button>
       </div>
 
       {/* Security Vault Callout */}
-      <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-slate-800/90 p-6 md:p-8 shadow-2xl shadow-black/40 space-y-3">
-        <div className="flex items-center space-x-2.5 text-teal-300 font-bold text-sm">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
-            <Lock className="w-4 h-4 text-teal-400" />
-          </div>
-          <span className="font-sans">Zero-Exposure Secret Vault Policy</span>
+      <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-6 space-y-2">
+        <div className="flex items-center space-x-2 text-[#8b95ff] font-semibold text-xs font-mono uppercase tracking-wider">
+          <Lock className="w-3.5 h-3.5" />
+          <span>Zero-Exposure Secret Vault Policy</span>
         </div>
-        <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-3xl">
+        <p className="text-xs text-[#8a8f98] leading-relaxed max-w-3xl">
           LegacyBridge never transmits plain-text API keys, passwords, or session tokens to the browser.
           Secrets are read strictly by server-side runtime environments and masked everywhere in the UI and logs.
-          To update credentials, update your secure <code className="text-teal-300 font-mono bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">.env</code> configuration on Vercel or locally.
+          To update credentials, update your secure <code className="text-[#8b95ff] font-mono bg-black/60 px-1.5 py-0.5 rounded border border-white/[0.08]">.env</code> configuration on Vercel, Railway, or locally.
         </p>
       </div>
 
       {/* Integrations Grid with Interactive Testing */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-sans font-bold text-white">Configured Integration Adapters</h2>
-          <span className="text-xs font-mono text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-500/20">
+          <h2 className="text-base font-semibold text-[#f7f8f8]">Configured Integration Adapters</h2>
+          <span className="text-[10px] font-mono text-[#8b95ff] bg-[#5e6ad2]/15 px-2.5 py-1 rounded-full border border-[#5e6ad2]/25">
             {integrations.length} Enterprise Adapters Monitored
           </span>
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-sm text-slate-400">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-400" />
+          <div className="py-12 text-center text-xs text-[#8a8f98]">
+            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#8b95ff]" />
             Checking integration status...
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3.5">
             {integrations.map((item) => {
               const Icon = getProviderIcon(item.provider);
               const testResult = testResults[item.provider];
@@ -152,31 +146,31 @@ export default function SettingsPage() {
               return (
                 <div
                   key={item.provider}
-                  className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 hover:border-teal-500/40 p-6 shadow-xl shadow-black/20 space-y-4 transition-all duration-200"
+                  className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] hover:border-white/[0.18] p-5 space-y-3 transition-all duration-150"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start space-x-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center shrink-0 text-teal-400 mt-0.5">
-                        <Icon className="w-5 h-5" />
+                      <div className="w-9 h-9 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center shrink-0 text-[#8b95ff] mt-0.5">
+                        <Icon className="w-4 h-4" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
-                          <span className="font-bold text-sm text-white">{item.name}</span>
+                          <span className="font-semibold text-sm text-[#f7f8f8]">{item.name}</span>
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-semibold tracking-wider uppercase border ${
                               item.status === 'connected'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                ? 'bg-[#4daf73]/10 text-[#4daf73] border-[#4daf73]/30'
                                 : item.status === 'demo_simulation' || item.status === 'demo_mode'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                                ? 'bg-[#e0a82e]/10 text-[#e0a82e] border-[#e0a82e]/30'
+                                : 'bg-white/[0.04] text-[#5d626b] border-white/[0.08]'
                             }`}
                           >
                             {item.status.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 leading-relaxed max-w-xl">{item.description}</p>
-                        <div className="text-xs font-mono text-slate-500 pt-1">
-                          Key Reference: <span className="text-teal-300 font-bold bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800">{item.maskedRef}</span>
+                        <p className="text-xs text-[#8a8f98] leading-relaxed max-w-xl">{item.description}</p>
+                        <div className="text-[11px] font-mono text-[#5d626b] pt-0.5">
+                          Key Reference: <span className="text-[#8b95ff] font-medium bg-black/60 px-1.5 py-0.5 rounded border border-white/[0.08]">{item.maskedRef}</span>
                         </div>
                       </div>
                     </div>
@@ -185,12 +179,13 @@ export default function SettingsPage() {
                       <button
                         onClick={() => handleTestConnection(item.provider)}
                         disabled={isTesting}
-                        className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-xs font-extrabold transition shadow-md shadow-teal-500/20 active:scale-95 disabled:opacity-50"
+                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-[#f7f8f8] hover:bg-white text-[#08090a] text-xs font-semibold transition active:scale-95 disabled:opacity-50"
+                        type="button"
                       >
                         {isTesting ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Pinging...</span>
+                            <span>Pinging…</span>
                           </>
                         ) : (
                           <>
@@ -204,22 +199,22 @@ export default function SettingsPage() {
                         href={item.docsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center space-x-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-800/60 hover:bg-slate-700 text-xs font-bold text-slate-300 transition"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.07] text-xs font-medium text-[#c7c9cc] transition"
                       >
                         <span>Docs</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                        <ExternalLink className="w-3 h-3 text-[#5d626b]" />
                       </a>
                     </div>
                   </div>
 
                   {/* Diagnostic Test Feedback */}
                   {testResult && (
-                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-                      <div className="flex items-center space-x-2 text-emerald-400">
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        <span className="font-sans text-slate-300">{testResult.message}</span>
+                    <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center space-x-2 text-[#4daf73]">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span className="font-sans text-[#c7c9cc]">{testResult.message}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-teal-300 font-bold">
+                      <span className="px-1.5 py-0.5 rounded bg-black border border-white/[0.08] text-[#8b95ff] font-semibold text-[11px]">
                         {testResult.latencyMs}ms
                       </span>
                     </div>
@@ -231,29 +226,27 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Instructions on Demo vs Real Mode */}
-      <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-4">
-        <h3 className="font-sans font-bold text-base text-white">Operating Mode Guidance</h3>
+      {/* Operating Mode Guidance */}
+      <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.08] p-6 space-y-3">
+        <h3 className="font-semibold text-sm text-[#f7f8f8]">Operating Mode Guidance</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-5 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-2">
-            <div className="font-bold text-amber-300 flex items-center space-x-2">
-              <Zap className="w-4 h-4 text-amber-400" />
-              <span>DEMO MODE (Default Hackathon Presentation)</span>
+          <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.06] space-y-1.5">
+            <div className="font-semibold text-[#e0a82e] flex items-center space-x-1.5">
+              <span>DEMO MODE (Default Presentation Mode)</span>
             </div>
-            <p className="text-slate-300 leading-relaxed text-xs">
-              When <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">DEMO_MODE=true</code> or API keys are unconfigured,
+            <p className="text-[#8a8f98] leading-relaxed text-xs">
+              When <code className="font-mono text-[#8b95ff] bg-black/60 px-1.5 py-0.5 rounded border border-white/[0.08]">DEMO_MODE=true</code> or keys are unconfigured,
               LegacyBridge runs deterministic local simulated agent sessions targeting the built-in Acme Inventory ERP.
               Zero Wi-Fi drop risk and 100% reliable live judging demos.
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
-            <div className="font-bold text-emerald-400 flex items-center space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.06] space-y-1.5">
+            <div className="font-semibold text-[#4daf73] flex items-center space-x-1.5">
               <span>REAL MODE (Live Production Agent)</span>
             </div>
-            <p className="text-slate-300 leading-relaxed text-xs">
-              When <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">DEMO_MODE=false</code> and a valid <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">TINYFISH_API_KEY</code> is supplied,
+            <p className="text-[#8a8f98] leading-relaxed text-xs">
+              When <code className="font-mono text-[#8b95ff] bg-black/60 px-1.5 py-0.5 rounded border border-white/[0.08]">DEMO_MODE=false</code> and a valid <code className="font-mono text-[#8b95ff] bg-black/60 px-1.5 py-0.5 rounded border border-white/[0.08]">TINYFISH_API_KEY</code> is supplied,
               the agent spawns real cloud browser sandboxes directly via TinyFish Web Agent API.
             </p>
           </div>

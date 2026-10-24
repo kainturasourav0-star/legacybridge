@@ -1,0 +1,24 @@
+# LegacyBridge (https://legacybridge.vercel.app)
+> Bridge the gap between legacy software and modern intelligence. Automated analysis, logic recovery, and safe migration planning.
+
+## Core Capabilities
+- AI Legacy Code Intelligence: Ingest and parse monolithic Node.js, Express, and legacy backend codebases into structured Abstract Syntax Trees (ASTs).
+- Business Logic Recovery: Extract undocumented underwriting rules, volume discounts, and pricing algorithms from procedural controllers into schema-validated contracts.
+- Business Logic Drift Detection: Flagship regression engine comparing legacy monolith outcomes against modernized microservices (e.g. Slide 5 stock depletion regression check: qty 5, stock 2).
+- Strangler Fig Migration Planning: Incrementally decompose monoliths into 4 bounded context microservices (Customer Service, Order Service, Inventory Service, Payment Service) with dedicated database isolation.
+- Microservice Scaffold Generation: Generate production-ready FastAPI and Node.js microservice scaffolds with OpenAPI 3.1 specifications and Dockerfiles.
+- Live Web Agent Automation: Convert brittle internal web portals and legacy ERP screens into resilient, scheduled REST API feeds via TinyFish cloud browser agents.
+
+## Key Endpoints
+- GET /api/v1/feeds/{taskId}/latest: Live, validated JSON data feed extracted from legacy portal.
+- POST /api/tasks: Create natural language browser agent task with Pydantic JSON schema invariants.
+- GET /api/drift: Run live regression tests and return business logic drift differences.
+- GET /api/architecture: Retrieve AST dependency graph, coupling metrics, and database table boundaries.
+- GET /api/migration: Inspect 4-phase Strangler Fig roadmap and generated service code scaffolds.
+- GET /api/research: Query official vendor migration guides and breaking changes.
+- GET /health: Health check and demo mode status.
+
+## Trust & Safety
+- Validation: Strict Pydantic JSON schema invariants and <5% null threshold checks.
+- Human Approval Gate: Write actions and service cutovers require explicit operator authorization.
+- Security: Row-Level Security (RLS) on Postgres, SSRF protection against private IP ranges, CSP/HSTS headers, and sliding-window rate limiting.
