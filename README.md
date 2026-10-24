@@ -56,47 +56,74 @@ cp .env.example .env
 
 # Or run manually in separate terminals:
 # Terminal 1: Demo Legacy ERP (Port 8080)
-cd demo-portal && python -m http.server 8080
+python -m http.server 8080 --directory demo-portal
 
-# Terminal 2: FastAPI Backend (Port 8000)
-cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
+# Terminal 2: Next.js Full-Stack Application (Port 3000)
+npm install && npm run dev
 
-# Terminal 3: Next.js Frontend (Port 3000)
-cd frontend && npm install && npm run dev
+# (Optional) Terminal 3: FastAPI Backend Engine (Port 8000)
+uvicorn backend.main:app --reload --port 8000
 ```
 
 Visit:
 - **LegacyBridge Web Console:** [http://localhost:3000](http://localhost:3000)
 - **Acme Inventory Demo ERP:** [http://localhost:8080](http://localhost:8080)
 - **FastAPI Interactive Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Instant Feed Endpoint:** [http://localhost:3000/api/feeds/task-q3-sales-acme/latest](http://localhost:3000/api/feeds/task-q3-sales-acme/latest)
+
+---
+
+## 🧪 Running Automated Tests
+
+```bash
+# 1. Vitest Unit & Security Test Suite (23 tests)
+npm test
+
+# 2. Strict TypeScript Checking & ESLint
+npm run typecheck
+npm run lint
+
+# 3. Next.js Production Build
+npm run build
+
+# 4. Pytest Backend & Validator Suite (11 tests)
+python -m pytest backend/tests -v
+
+# 5. PowerShell E2E Smoke Tests (5 user journeys)
+powershell -ExecutionPolicy Bypass -File scripts\e2e-smoke-test.ps1
+```
 
 ---
 
 ## 🎯 Demo Mode vs Live Mode
-- **DEMO_MODE=true (Default)**: Fully deterministic! TinyFish streaming events, realistic latency pauses, live replay video link, and mock Slack/Sheets deliveries are simulated faithfully so live stage presentations never fail due to Wi-Fi hiccups.
-- **DEMO_MODE=false**: Uses real credentials:
+- **DEMO_MODE=true (Default)**: Fully deterministic! TinyFish streaming events, realistic latency pauses, live replay video links, and delivery receipts are simulated faithfully so live stage presentations never fail due to Wi-Fi hiccups.
+- **DEMO_MODE=false**: Uses real cloud credentials:
   - `TINYFISH_API_KEY`: Key from `agent.tinyfish.ai`
   - `OPENAI_API_KEY`: For live LangChain schema generation
   - `SLACK_WEBHOOK_URL`: Real channel notifications
+  - `DATABASE_URL`: Managed Neon / Supabase PostgreSQL
 
 ---
 
-## 📦 Monorepo Structure
+## 📦 Project Structure
 ```
 legacybridge/
-├── backend/            # FastAPI, LangChain, Pydantic v2, APScheduler, SQLAlchemy
-│   ├── api/            # REST endpoints, SSE streams, feed routes
-│   ├── services/       # State machine, runner, validation engine
-│   ├── adapters/       # TinyFish client, Slack, Sheets, LLM Planner
-│   ├── models/         # SQLAlchemy models (tasks, runs, steps, approvals)
-│   └── tests/          # Pytest suite for validator & state machine
-├── frontend/           # Next.js App Router, TailwindCSS, Lucide, Framer Motion
-│   ├── app/            # Task builder, live run, history, approvals, feed
-│   ├── components/     # UI design system, timeline, diff viewer
-│   └── lib/            # SSE client, API wrappers, store
-├── demo-portal/        # Acme Inventory v4.2 (2000s ERP with frames & Break UI toggle)
-├── docs/               # Architecture PLAN.md, DEMO_SCRIPT.md
-└── scripts/            # Startup scripts & database seeding
+├── src/                # Next.js 14 App Router, Tailwind CSS, shadcn/ui, Framer Motion
+│   ├── app/            # Task builder, live run console, results explorer, history, feeds
+│   ├── components/     # Spline 3D visualizer, navigation, data grid table, diff viewer
+│   ├── features/       # Runs console, task library, integrations vault
+│   ├── lib/            # TinyFish client, validator, delivery adapters, security & auth
+│   └── types/          # TypeScript domain interfaces (Task, Run, ValidationReport)
+├── backend/            # FastAPI REST API, LangChain, Pydantic v2, APScheduler, SQLAlchemy
+│   ├── adapters/       # TinyFish client, Slack/Sheets/Webhook/Postgres delivery adapters
+│   ├── api/            # FastAPI router, SSE stream endpoints, feed cache
+│   ├── models/         # SQLAlchemy relational database models
+│   ├── services/       # State machine, orchestration engine, Pydantic validator, scheduler
+│   └── tests/          # Pytest automated test suite
+├── demo-portal/        # Acme Inventory v4.2 (2000s legacy ERP with frames & "Break UI" toggle)
+├── supabase/           # PostgreSQL migrations with Row Level Security (RLS) policies
+├── docs/               # Architecture PLAN.md, DEMO_SCRIPT.md, design references
+└── scripts/            # Startup scripts & automated smoke test suites
 ```
 
 ---
@@ -104,6 +131,16 @@ legacybridge/
 ## 🏆 Key Features for HackIIITD 2026
 1. **ROI & Time-Saved Meter**: Real-time business savings tracking ($ value & hours).
 2. **Break-the-UI Adaptation**: Test the agent by rearranging the legacy ERP's DOM live; the agent adapts without CSS selector brittleness.
-3. **Pydantic Self-Healing Loop**: If data fails validation, the error feedback automatically guides a targeted self-heal attempt.
-4. **Instant API-ification**: Any legacy web screen automatically exports a clean REST API: `GET /api/v1/feeds/{task_id}/latest`.
-5. **Approval Diff Gate**: Human-in-the-loop review for any write operation with before-and-after change preview.
+3. **Pydantic Validation Engine**: Output must pass type conformity, row-count checks, and null-rate thresholds. Malformed payloads are blocked from delivery.
+4. **Approval Gate for Mutations**: Safe-by-default execution. Read-only tasks run automatically; state changes halt for human operator review.
+5. **Instant API-ification**: Any legacy web screen automatically exports a clean REST API: `GET /api/v1/feeds/{task_id}/latest`.
+6. **Multi-Destination Delivery**: Validated dispatches to Slack, Google Sheets, Generic Webhook (SSRF-protected), and PostgreSQL.
+
+---
+
+## 🗺️ Post-Hackathon Roadmap
+- [ ] Multi-tenant enterprise SSO (SAML/Okta) alongside Clerk.
+- [ ] Distributed Celery worker clusters on Kubernetes for horizontal scale.
+- [ ] Bidirectional forms synchronization for two-way legacy ERP reconciliation.
+- [ ] Visual self-healing prompt tuning from failure audit traces.
+
