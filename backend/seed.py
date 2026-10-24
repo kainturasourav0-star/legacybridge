@@ -1,6 +1,7 @@
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
+from sqlalchemy import select
 from backend.database import init_db, AsyncSessionLocal
 from backend.models.models import Task, Run, RunStep, CredentialVault, FeedCache, Approval
 
@@ -44,6 +45,13 @@ SAMPLE_EXTRACTED_DATA = {
 async def seed_data():
     await init_db()
     async with AsyncSessionLocal() as session:
+        # Check if already seeded
+        existing = await session.execute(select(CredentialVault).where(CredentialVault.id == "cred-acme-admin"))
+        if existing.scalar_one_or_none():
+            return
+
+        now = datetime.now(timezone.utc)
+
         # 1. Seed Credential in Vault
         vault_cred = CredentialVault(
             id="cred-acme-admin",
@@ -52,7 +60,7 @@ async def seed_data():
             username_masked="ops_ad***@acmecorp.internal",
             encrypted_secret="vault_enc_a9f182c890123be",
             auth_type="form_login",
-            last_used_at=datetime.utcnow() - timedelta(minutes=45)
+            last_used_at=now - timedelta(minutes=45)
         )
         session.add(vault_cred)
 
@@ -113,8 +121,8 @@ async def seed_data():
             replay_url="https://agent.tinyfish.ai/replays/rf-demo-q3-acme-78192a",
             time_saved_minutes=120.0,
             idempotency_key="idem-q3-recent-001",
-            started_at=datetime.utcnow() - timedelta(hours=2, minutes=5),
-            completed_at=datetime.utcnow() - timedelta(hours=2)
+            started_at=now - timedelta(hours=2, minutes=5),
+            completed_at=now - timedelta(hours=2)
         )
         session.add(run_hist)
 
@@ -127,7 +135,7 @@ async def seed_data():
             ("validating", "completed", "Pydantic validation passed (score: 100%). No anomalies detected."),
             ("delivering", "completed", "Dispatched formatted block table to Slack channel #ops-reports with idempotency key idem-q3-recent-001.")
         ]
-        t = datetime.utcnow() - timedelta(hours=2, minutes=5)
+        t = now - timedelta(hours=2, minutes=5)
         for s_name, s_status, s_msg in step_names:
             step = RunStep(
                 run_id=run_hist.id,
@@ -151,7 +159,7 @@ async def seed_data():
             replay_url="https://agent.tinyfish.ai/replays/rf-demo-reorder-write-341",
             time_saved_minutes=45.0,
             idempotency_key="idem-reorder-002",
-            started_at=datetime.utcnow() - timedelta(minutes=15)
+            started_at=now - timedelta(minutes=15)
         )
         session.add(run_approval)
 
@@ -171,7 +179,7 @@ async def seed_data():
             latest_run_id=run_hist.id,
             data=SAMPLE_EXTRACTED_DATA,
             item_count=5,
-            last_updated=datetime.utcnow() - timedelta(hours=2)
+            last_updated=now - timedelta(hours=2)
         )
         session.add(feed)
 

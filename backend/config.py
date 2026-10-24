@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "legacy-bridge-super-secret-dev-key-hackathon2026"
     PORTAL_URL: str = "http://localhost:8080"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore"
+    }
 
 settings = Settings()
