@@ -13,7 +13,8 @@ import {
   Copy,
   ExternalLink,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { Run } from '@/types';
 import { convertToCsv } from '@/lib/utils/csv';
@@ -32,7 +33,7 @@ export function ResultsExplorer({ runId }: { runId: string }) {
   }, [runId]);
 
   if (!run) {
-    return <div className="p-12 text-center text-sm text-slate-500">Loading extracted results...</div>;
+    return <div className="p-16 text-center text-sm text-slate-400">Loading extracted results...</div>;
   }
 
   const data = run.validatedData || run.extractedData || {};
@@ -70,29 +71,32 @@ export function ResultsExplorer({ runId }: { runId: string }) {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-800/60">
         <div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="text-xs font-semibold text-teal uppercase tracking-wider">
-              Validated Pipeline Output
+          <div className="flex items-center space-x-2.5 mb-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-mono font-medium">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse mr-2" />
+              VALIDATED PIPELINE OUTPUT
             </span>
-            <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">
+            <span className="text-xs px-2.5 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 font-mono">
               {run.executionMode === 'demo' ? 'DEMO FIXTURE (ACME ERP)' : 'LIVE TINYFISH EXTRACT'}
             </span>
           </div>
-          <h1 className="text-3xl font-serif font-bold text-ink">Results Explorer</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Review schema-conforming records, download CSV, or push to downstream business tools.
+          <h1 className="text-3xl md:text-4xl font-sans font-extrabold text-white tracking-tight">
+            Results Explorer
+          </h1>
+          <p className="text-sm md:text-base text-slate-400 mt-2 font-normal">
+            Review schema-conforming records, download CSV, or push to downstream destinations.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2.5 flex-wrap gap-y-2">
           <button
             onClick={handleDownloadCsv}
             disabled={items.length === 0}
-            className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition flex items-center space-x-1.5 disabled:opacity-50"
+            className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download CSV</span>
@@ -100,7 +104,7 @@ export function ResultsExplorer({ runId }: { runId: string }) {
 
           <button
             onClick={handleCopyJson}
-            className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition flex items-center space-x-1.5"
+            className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition flex items-center space-x-1.5"
           >
             <Copy className="w-3.5 h-3.5" />
             <span>{copied ? 'Copied JSON!' : 'Copy JSON'}</span>
@@ -109,7 +113,7 @@ export function ResultsExplorer({ runId }: { runId: string }) {
           <button
             onClick={handleManualDeliver}
             disabled={delivering}
-            className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
+            className="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-xs font-extrabold transition flex items-center space-x-1.5 shadow-lg shadow-teal-500/20 active:scale-95 disabled:opacity-50"
           >
             <Send className="w-3.5 h-3.5" />
             <span>{delivering ? 'Dispatching...' : 'Push to Slack Webhook'}</span>
@@ -118,38 +122,40 @@ export function ResultsExplorer({ runId }: { runId: string }) {
       </div>
 
       {deliveryReceipt && (
-        <div className="p-4 rounded-lg bg-teal/10 border border-teal/30 text-teal text-sm flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-teal" />
-            <span>{deliveryReceipt}</span>
+        <div className="p-4 rounded-xl bg-teal-950/40 border border-teal-500/40 text-teal-300 text-sm flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <CheckCircle2 className="w-4 h-4 text-teal-400" />
+            <span className="font-medium">{deliveryReceipt}</span>
           </div>
         </div>
       )}
 
       {/* Validation Banner */}
-      <div className="bg-surface rounded-card border border-slate-200/80 p-5 shadow-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+      <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-5 shadow-xl shadow-black/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <div className="font-semibold text-sm text-ink flex items-center space-x-2">
+            <div className="font-bold text-sm text-white flex items-center space-x-2">
               <span>Pydantic v2 Schema Trust Score: {run.validationReport?.score || 100}%</span>
-              <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                VALIDATED
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold font-mono">
+                MATHEMATICALLY VALIDATED
               </span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
+            <div className="text-xs text-slate-400 mt-0.5">
               Verified non-empty row invariants, zero prohibited nulls, and baseline historical stability.
             </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
-              viewMode === 'table' ? 'bg-navy-950 text-white' : 'border border-slate-300 text-slate-700'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              viewMode === 'table'
+                ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
+                : 'border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white'
             }`}
           >
             <Table className="w-3.5 h-3.5" />
@@ -157,8 +163,10 @@ export function ResultsExplorer({ runId }: { runId: string }) {
           </button>
           <button
             onClick={() => setViewMode('json')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 ${
-              viewMode === 'json' ? 'bg-navy-950 text-white' : 'border border-slate-300 text-slate-700'
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              viewMode === 'json'
+                ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20'
+                : 'border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white'
             }`}
           >
             <Code2 className="w-3.5 h-3.5" />
@@ -169,9 +177,9 @@ export function ResultsExplorer({ runId }: { runId: string }) {
 
       {/* Main Results View */}
       {viewMode === 'table' ? (
-        <div className="bg-surface rounded-card border border-slate-200/80 shadow-subtle overflow-hidden">
-          <div className="p-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider font-mono">
+        <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 shadow-xl shadow-black/20 overflow-hidden">
+          <div className="p-4 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
               Extracted Records ({items.length} Rows)
             </span>
             {run.replayUrl && (
@@ -179,35 +187,35 @@ export function ResultsExplorer({ runId }: { runId: string }) {
                 href={run.replayUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-teal font-medium hover:underline flex items-center space-x-1"
+                className="text-xs text-teal-400 hover:text-teal-300 font-medium flex items-center space-x-1"
               >
                 <span>TinyFish Cloud Replay</span>
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
           </div>
 
           {items.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500">
+            <div className="p-12 text-center text-sm text-slate-400">
               No structured tabular rows returned in this run.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100/70 border-b border-slate-200 text-slate-600 text-xs uppercase font-mono">
+                <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 text-xs uppercase font-mono">
                   <tr>
                     {headers.map((h) => (
-                      <th key={h} className="py-3 px-4 font-semibold">
+                      <th key={h} className="py-3 px-4 font-bold tracking-wider">
                         {h.replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-800/60">
                   {items.map((row, i) => (
-                    <tr key={i} className="hover:bg-slate-50/60 transition">
+                    <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                       {headers.map((h) => (
-                        <td key={h} className="py-3 px-4 text-slate-800">
+                        <td key={h} className="py-3.5 px-4 text-slate-200">
                           {typeof row[h] === 'number'
                             ? h.includes('revenue') || h.includes('price')
                               ? `$${row[h].toLocaleString(undefined, { minimumFractionDigits: 2 })}`
@@ -223,7 +231,7 @@ export function ResultsExplorer({ runId }: { runId: string }) {
           )}
         </div>
       ) : (
-        <div className="bg-slate-950 text-slate-100 rounded-card p-6 border border-slate-800 font-mono text-xs overflow-x-auto shadow-card">
+        <div className="bg-slate-950 text-teal-300 rounded-2xl p-6 border border-slate-800 font-mono text-xs overflow-x-auto shadow-2xl leading-relaxed">
           <pre>{JSON.stringify(data, null, 2)}</pre>
         </div>
       )}

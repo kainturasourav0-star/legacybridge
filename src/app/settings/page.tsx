@@ -10,7 +10,9 @@ import {
   Send,
   FileSpreadsheet,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -23,65 +25,78 @@ export default function SettingsPage() {
       .then((data) => {
         setIntegrations(data.integrations || []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <div>
-        <div className="text-xs font-semibold text-teal tracking-wider uppercase mb-1">
-          Vault & Credential Layer
+    <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="pb-2 border-b border-slate-800/60">
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-mono font-medium mb-3">
+          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          <span>VAULT & CREDENTIAL INFRASTRUCTURE</span>
         </div>
-        <h1 className="text-3xl font-serif font-bold text-ink">Integrations & Credentials Vault</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Secure, server-side credential references for TinyFish cloud browser agents, Slack, and Google Sheets.
+        <h1 className="text-3xl md:text-4xl font-sans font-extrabold text-white tracking-tight">
+          Integrations & Credentials Vault
+        </h1>
+        <p className="text-sm md:text-base text-slate-400 mt-2 max-w-2xl font-normal leading-relaxed">
+          Secure, zero-exposure credential references for TinyFish cloud browser agents, Slack, and Google Sheets.
         </p>
       </div>
 
       {/* Security Vault Callout */}
-      <div className="bg-navy-950 text-white rounded-card border border-navy-800 p-6 shadow-card space-y-3">
-        <div className="flex items-center space-x-2 text-mint font-semibold text-sm">
-          <Lock className="w-4 h-4" />
-          <span>Zero-Exposure Secret Vault Policy</span>
+      <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-slate-800/90 p-6 md:p-8 shadow-2xl shadow-black/40 space-y-3">
+        <div className="flex items-center space-x-2.5 text-teal-300 font-bold text-sm">
+          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+            <Lock className="w-4 h-4 text-teal-400" />
+          </div>
+          <span className="font-sans">Zero-Exposure Secret Vault Policy</span>
         </div>
-        <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+        <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-3xl">
           LegacyBridge never transmits plain-text API keys, passwords, or session tokens to the browser.
           Secrets are read strictly by server-side runtime environments and masked everywhere in the UI and logs.
-          To update credentials, update your secure <code className="text-teal font-mono">.env</code> configuration on Vercel or locally.
+          To update credentials, update your secure <code className="text-teal-300 font-mono bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">.env</code> configuration on Vercel or locally.
         </p>
       </div>
 
       {/* Integrations Grid */}
       <div className="space-y-4">
-        <h2 className="text-lg font-serif font-bold text-ink">Configured Integration Adapters</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-sans font-bold text-white">Configured Integration Adapters</h2>
+          <span className="text-xs font-mono text-slate-400">All Adapters Monitored</span>
+        </div>
 
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-500">Checking integration status...</div>
+          <div className="py-12 text-center text-sm text-slate-400">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-400" />
+            Checking integration status...
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {integrations.map((item) => (
               <div
                 key={item.provider}
-                className="bg-surface rounded-card border border-slate-200/80 p-5 shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 hover:border-teal-500/40 p-6 shadow-xl shadow-black/20 flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all duration-200"
               >
-                <div className="space-y-1 max-w-xl">
-                  <div className="flex items-center space-x-2.5">
-                    <span className="font-semibold text-sm text-ink">{item.name}</span>
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="flex items-center space-x-3">
+                    <span className="font-bold text-sm text-white">{item.name}</span>
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${
                         item.status === 'connected'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                           : item.status === 'demo_simulation' || item.status === 'demo_mode'
-                          ? 'bg-amber-50 text-amber-dark border border-amber/40'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
                       }`}
                     >
                       {item.status.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600">{item.description}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.description}</p>
                   <div className="text-xs font-mono text-slate-500 pt-1">
-                    Key Reference: <span className="text-slate-700 font-bold">{item.maskedRef}</span>
+                    Key Reference: <span className="text-teal-300 font-bold bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800">{item.maskedRef}</span>
                   </div>
                 </div>
 
@@ -90,10 +105,10 @@ export default function SettingsPage() {
                     href={item.docsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-medium text-slate-700 transition"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl border border-slate-800 bg-slate-800/60 hover:bg-slate-700 text-xs font-bold text-slate-200 transition"
                   >
                     <span>Setup Guide</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                   </a>
                 </div>
               </div>
@@ -103,26 +118,28 @@ export default function SettingsPage() {
       </div>
 
       {/* Instructions on Demo vs Real Mode */}
-      <div className="bg-surface rounded-card border border-slate-200/80 p-6 shadow-subtle space-y-4">
-        <h3 className="font-serif font-bold text-base text-ink">Operating Mode Guidance</h3>
+      <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-4">
+        <h3 className="font-sans font-bold text-base text-white">Operating Mode Guidance</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-4 rounded-lg bg-amber-50/60 border border-amber/40 space-y-2">
-            <div className="font-semibold text-amber-dark flex items-center space-x-1.5">
+          <div className="p-5 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-2">
+            <div className="font-bold text-amber-300 flex items-center space-x-2">
+              <Zap className="w-4 h-4 text-amber-400" />
               <span>DEMO MODE (Default Hackathon Presentation)</span>
             </div>
-            <p className="text-slate-600 leading-relaxed">
-              When <code className="font-mono text-slate-800">DEMO_MODE=true</code> or API keys are unconfigured,
+            <p className="text-slate-300 leading-relaxed text-xs">
+              When <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">DEMO_MODE=true</code> or API keys are unconfigured,
               LegacyBridge runs deterministic local simulated agent sessions targeting the built-in Acme Inventory ERP.
               Zero Wi-Fi drop risk and 100% reliable live judging demos.
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200/60 space-y-2">
-            <div className="font-semibold text-emerald-900 flex items-center space-x-1.5">
+          <div className="p-5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+            <div className="font-bold text-emerald-400 flex items-center space-x-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span>REAL MODE (Live Production Agent)</span>
             </div>
-            <p className="text-slate-600 leading-relaxed">
-              When <code className="font-mono text-slate-800">DEMO_MODE=false</code> and a valid <code className="font-mono text-slate-800">TINYFISH_API_KEY</code> is supplied,
+            <p className="text-slate-300 leading-relaxed text-xs">
+              When <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">DEMO_MODE=false</code> and a valid <code className="font-mono text-teal-300 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">TINYFISH_API_KEY</code> is supplied,
               the agent spawns real cloud browser sandboxes directly via TinyFish Web Agent API.
             </p>
           </div>

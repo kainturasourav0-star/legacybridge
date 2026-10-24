@@ -12,6 +12,7 @@ import {
   Database,
   ArrowRight,
   ExternalLink,
+  Activity
 } from 'lucide-react';
 
 export function SplineHeroVisual() {
@@ -26,26 +27,26 @@ export function SplineHeroVisual() {
   const nodes = [
     {
       id: 0,
-      title: 'Legacy ERP',
-      subtitle: '2004 Frameset Portal',
-      meta: ':8080 · No API',
+      title: 'Legacy ERP Portal',
+      subtitle: '2004 Frameset Architecture',
+      meta: ':8080 · Zero Native API',
       icon: Server,
       color: 'from-amber-500/20 to-amber-700/30 text-amber-300 border-amber-500/40',
       badge: 'SOURCE',
     },
     {
       id: 1,
-      title: 'TinyFish Agent',
-      subtitle: 'DOM Traversal & Auth',
-      meta: 'Cloud Headless Browser',
+      title: 'TinyFish Cloud Agent',
+      subtitle: 'DOM Traversal & Session Auth',
+      meta: 'Headless Chromium Engine',
       icon: Cpu,
       color: 'from-teal-500/20 to-teal-700/30 text-teal-300 border-teal-500/40',
       badge: 'AUTOMATE',
     },
     {
       id: 2,
-      title: 'Trust Engine',
-      subtitle: 'Invariants & Null Rate',
+      title: 'Trust & Invariants',
+      subtitle: 'Strict Null & Schema Bounds',
       meta: 'Pydantic / Zod <5% nulls',
       icon: ShieldCheck,
       color: 'from-blue-500/20 to-blue-700/30 text-blue-300 border-blue-500/40',
@@ -53,8 +54,8 @@ export function SplineHeroVisual() {
     },
     {
       id: 3,
-      title: 'Instant Feed & Ops',
-      subtitle: 'Live REST & Slack',
+      title: 'Instant Feed & Webhooks',
+      subtitle: 'Live REST & Slack Delivery',
       meta: 'GET /api/feeds/:id/latest',
       icon: Send,
       color: 'from-emerald-500/20 to-emerald-700/30 text-emerald-300 border-emerald-500/40',
@@ -63,12 +64,12 @@ export function SplineHeroVisual() {
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 border border-navy-800 p-6 md:p-8 shadow-card text-white">
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/90 p-6 md:p-8 shadow-2xl shadow-black/40 text-white">
       {/* Background Glow / Mesh grid */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle at 50% 20%, rgba(79, 224, 200, 0.15) 0%, transparent 60%),
+          backgroundImage: `radial-gradient(circle at 50% 20%, rgba(20, 184, 166, 0.18) 0%, transparent 60%),
                             linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
                             linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)`,
           backgroundSize: '100% 100%, 32px 32px, 32px 32px',
@@ -78,20 +79,21 @@ export function SplineHeroVisual() {
       {/* Header Info */}
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-teal/20 border border-teal/40 text-mint text-xs font-mono font-medium mb-2">
-            <span className="w-2 h-2 rounded-full bg-mint animate-pulse" />
-            <span>ARCHITECTURE INTERACTION</span>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-mono font-medium mb-2.5">
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+            <span>INTERACTIVE PIPELINE ARCHITECTURE</span>
           </div>
-          <h2 className="text-xl md:text-2xl font-serif font-bold text-white tracking-tight">
-            How LegacyBridge Transforms Fragile Web Portals
+          <h2 className="text-xl md:text-2xl font-sans font-extrabold text-white tracking-tight">
+            How LegacyBridge Transforms Fragile Web Systems
           </h2>
-          <p className="text-xs md:text-sm text-slate-300 max-w-2xl mt-1">
-            Hover over any pipeline node to inspect real telemetry, validation constraints, and live data transit.
+          <p className="text-xs md:text-sm text-slate-300 max-w-2xl mt-1.5 leading-relaxed">
+            Hover over any pipeline node to inspect real telemetry, invariant thresholds, and cryptographic delivery states.
           </p>
         </div>
         <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
-          <span className="px-2 py-1 rounded bg-navy-800 border border-navy-700 text-slate-300">
-            Three Trust Pillars: Active
+          <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-teal-300 font-semibold flex items-center space-x-1.5">
+            <Activity className="w-3.5 h-3.5 text-teal-400" />
+            <span>Three Trust Pillars: ACTIVE</span>
           </span>
         </div>
       </div>
@@ -110,12 +112,12 @@ export function SplineHeroVisual() {
               transition={{ duration: 0.2 }}
               className={`relative rounded-xl p-4 border transition-all cursor-pointer backdrop-blur-md ${
                 isSelected
-                  ? 'bg-navy-800/90 border-teal shadow-lg shadow-teal/10'
-                  : 'bg-navy-900/60 border-navy-800 hover:border-slate-700'
+                  ? 'bg-slate-800/90 border-teal-500 shadow-xl shadow-teal-500/10'
+                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-navy-950/80 border border-slate-700 text-slate-300 uppercase">
+                <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-slate-950/80 border border-slate-700 text-slate-300 uppercase">
                   {node.badge}
                 </span>
                 <span className="text-[11px] font-mono text-slate-400">Step 0{index + 1}</span>
@@ -133,9 +135,9 @@ export function SplineHeroVisual() {
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-navy-800/80 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+              <div className="mt-3 pt-3 border-t border-slate-800/80 text-[11px] font-mono text-slate-400 flex items-center justify-between">
                 <span>{node.meta}</span>
-                <Zap className={`w-3 h-3 ${isSelected ? 'text-mint' : 'text-slate-500'}`} />
+                <Zap className={`w-3 h-3 ${isSelected ? 'text-teal-300' : 'text-slate-500'}`} />
               </div>
             </motion.div>
           );
@@ -143,9 +145,9 @@ export function SplineHeroVisual() {
       </div>
 
       {/* Interactive Telemetry Sub-Panel */}
-      <div className="relative z-10 mt-6 pt-4 border-t border-navy-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-slate-300">
+      <div className="relative z-10 mt-6 pt-4 border-t border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-slate-300">
         <div className="flex items-center space-x-2">
-          <Globe className="w-4 h-4 text-teal shrink-0" />
+          <Globe className="w-4 h-4 text-teal-400 shrink-0" />
           <span>
             {activeNode === 0 && 'Target: Acme Inventory v4.2 ERP running on localhost:8080 with session cookies & pagination.'}
             {activeNode === 1 && 'Agent: TinyFish operates headless browser to navigate menus, bypass outdated framesets, and extract records.'}

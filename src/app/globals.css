@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #F5F4EF;
-  --foreground: #111C2E;
+  --background: #080D1A;
+  --foreground: #F8FAFC;
 }
 
 body {
@@ -14,20 +14,30 @@ body {
   background: var(--background);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(13, 148, 136, 0.15), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(99, 102, 241, 0.08), transparent 60%);
+  background-attachment: fixed;
 }
 
-/* Subtle enterprise scrollbars */
+/* Subtle modern dark scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #ECEAE1;
+  background: #080D1A;
 }
 ::-webkit-scrollbar-thumb {
-  background: #C4C0B3;
-  border-radius: 3px;
+  background: #1E293B;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9E9A8E;
+  background: #334155;
 }
+
+::selection {
+  background: rgba(13, 148, 136, 0.3);
+  color: #34D399;
+}
+

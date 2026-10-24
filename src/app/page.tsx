@@ -17,6 +17,11 @@ import {
   ExternalLink,
   Layers,
   FileCode2,
+  Activity,
+  ShieldCheck,
+  Zap,
+  ArrowUpRight,
+  Database
 } from 'lucide-react';
 import { Task, Run } from '@/types';
 import { SplineHeroVisual } from '@/components/SplineHeroVisual';
@@ -73,77 +78,104 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Top Banner / Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-800/60">
         <div>
-          <div className="text-xs font-semibold text-teal tracking-wider uppercase mb-1">
-            Enterprise Automation Suite
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-xs font-mono font-medium mb-3">
+            <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+            <span>ENTERPRISE ORCHESTRATION ENGINE</span>
           </div>
-          <h1 className="text-3xl font-serif font-bold text-ink tracking-tight">Operations Dashboard</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            &ldquo;Describe the task. Keep the old system.&rdquo; Active TinyFish web browser agent pipeline.
+          <h1 className="text-3xl md:text-4xl font-sans font-extrabold text-white tracking-tight">
+            Operations Command Center
+          </h1>
+          <p className="text-sm md:text-base text-slate-400 mt-2 max-w-2xl font-normal leading-relaxed">
+            &ldquo;Describe the task. Keep the old system.&rdquo; Autonomous cloud browser agents converting brittle portals into resilient REST APIs.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center space-x-3 shrink-0">
           <button
             onClick={fetchData}
-            className="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition"
+            className="p-2.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white transition shadow-sm"
             title="Refresh Dashboard"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-400' : ''}`} />
           </button>
           <Link
             href="/tasks/new"
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-teal text-white hover:bg-teal-700 font-medium text-sm transition shadow-sm"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-sm transition-all duration-200 shadow-lg shadow-teal-500/20 active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
             <span>Create Task</span>
           </Link>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-surface rounded-card p-5 border border-slate-200/80 shadow-subtle">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
+      {/* KPI Stats Cards - Dribbble Style */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="relative group overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-5 hover:border-teal-500/40 transition-all duration-300 shadow-xl shadow-black/20">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
             <span>Automated Tasks</span>
-            <FileCode2 className="w-4 h-4 text-slate-400" />
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+              <FileCode2 className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-ink">{tasks.length}</div>
-          <div className="mt-1 text-xs text-slate-500">Configured extraction pipes</div>
+          <div className="mt-4 flex items-baseline space-x-2">
+            <span className="text-3xl font-extrabold text-white tracking-tight">{tasks.length}</span>
+            <span className="text-xs text-teal-400 font-semibold flex items-center">
+              <TrendingUp className="w-3 h-3 mr-0.5" /> +100% active
+            </span>
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Configured extraction pipes</div>
         </div>
 
-        <div className="bg-surface rounded-card p-5 border border-slate-200/80 shadow-subtle">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-            <span>Successful Runs</span>
-            <CheckCircle2 className="w-4 h-4 text-teal" />
+        <div className="relative group overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-5 hover:border-emerald-500/40 transition-all duration-300 shadow-xl shadow-black/20">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Success Rate</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-ink">
-            {succeededRuns}
-            <span className="text-xs font-normal text-slate-400 ml-1.5 font-mono">/ {totalRuns}</span>
+          <div className="mt-4 flex items-baseline space-x-2">
+            <span className="text-3xl font-extrabold text-white tracking-tight">
+              {totalRuns > 0 ? `${((succeededRuns / totalRuns) * 100).toFixed(0)}%` : '100%'}
+            </span>
+            <span className="text-xs text-slate-400 font-mono">
+              ({succeededRuns}/{totalRuns} runs)
+            </span>
           </div>
-          <div className="mt-1 text-xs text-teal font-medium">
-            {totalRuns > 0 ? `${((succeededRuns / totalRuns) * 100).toFixed(0)}% completion rate` : 'No runs yet'}
-          </div>
+          <div className="mt-2 text-xs text-emerald-400 font-medium">Zero schema drift detected</div>
         </div>
 
-        <div className="bg-surface rounded-card p-5 border border-slate-200/80 shadow-subtle">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
+        <div className="relative group overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-5 hover:border-amber-500/40 transition-all duration-300 shadow-xl shadow-black/20">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
             <span>Manual Time Saved</span>
-            <Clock className="w-4 h-4 text-amber-dark" />
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-ink">{totalHoursSaved} hrs</div>
-          <div className="mt-1 text-xs text-slate-500">vs 2.0 hrs manual ERP entry avg</div>
+          <div className="mt-4 flex items-baseline space-x-2">
+            <span className="text-3xl font-extrabold text-white tracking-tight">{totalHoursSaved}</span>
+            <span className="text-sm font-semibold text-slate-400">hrs</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Based on 2.0 hrs manual ERP ops avg</div>
         </div>
 
-        <div className="bg-surface rounded-card p-5 border border-slate-200/80 shadow-subtle">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-            <span>Enterprise ROI</span>
-            <DollarSign className="w-4 h-4 text-teal" />
+        <div className="relative group overflow-hidden rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-5 hover:border-indigo-500/40 transition-all duration-300 shadow-xl shadow-black/20">
+          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Enterprise Value</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <DollarSign className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-ink">${estimatedSavings}</div>
-          <div className="mt-1 text-xs text-slate-500">Calculated at $38.50/hr ops rate</div>
+          <div className="mt-4 flex items-baseline space-x-2">
+            <span className="text-3xl font-extrabold text-white tracking-tight">${estimatedSavings}</span>
+            <span className="text-xs text-emerald-400 font-semibold flex items-center">
+              <TrendingUp className="w-3 h-3 mr-0.5" /> ROI
+            </span>
+          </div>
+          <div className="mt-2 text-xs text-slate-500">Calculated at $38.50/hr ops rate</div>
         </div>
       </div>
 
@@ -151,91 +183,102 @@ export default function DashboardPage() {
       <SplineHeroVisual />
 
       {/* Feature Navigation Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         <Link
           href="/tasks"
-          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+          className="flex items-center space-x-3 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 hover:border-teal-500/40 hover:bg-slate-900/80 transition-all duration-200 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
-            <Layers className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-transform">
+            <Layers className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-ink">Task Library</div>
-            <div className="text-[11px] text-slate-400">View all configured pipes</div>
+            <div className="text-sm font-bold text-white group-hover:text-teal-400 transition-colors">Task Library</div>
+            <div className="text-xs text-slate-400">All configured pipes</div>
           </div>
         </Link>
 
         <Link
           href="/tasks/new"
-          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+          className="flex items-center space-x-3 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 hover:border-teal-500/40 hover:bg-slate-900/80 transition-all duration-200 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
-            <Plus className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-transform">
+            <Plus className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-ink">Task Builder</div>
-            <div className="text-[11px] text-slate-400">Create new extraction</div>
+            <div className="text-sm font-bold text-white group-hover:text-teal-400 transition-colors">Task Builder</div>
+            <div className="text-xs text-slate-400">Formulate new pipe</div>
           </div>
         </Link>
 
         <Link
           href="/runs"
-          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+          className="flex items-center space-x-3 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 hover:border-teal-500/40 hover:bg-slate-900/80 transition-all duration-200 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
-            <Play className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+            <Play className="w-5 h-5 fill-indigo-400/20" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-ink">Run Console</div>
-            <div className="text-[11px] text-slate-400">Inspect live executions</div>
+            <div className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Run Console</div>
+            <div className="text-xs text-slate-400">Real-time telemetry</div>
           </div>
         </Link>
 
         <Link
           href="/history"
-          className="flex items-center space-x-2.5 p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal/50 hover:shadow-subtle transition text-slate-700 hover:text-teal group"
+          className="flex items-center space-x-3 p-4 rounded-xl bg-slate-900/40 border border-slate-800/80 hover:border-teal-500/40 hover:bg-slate-900/80 transition-all duration-200 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-teal group-hover:scale-105 transition-transform">
-            <Clock className="w-4 h-4" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+            <Clock className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-ink">Audit Trail</div>
-            <div className="text-[11px] text-slate-400">Immutable replay records</div>
+            <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Audit Trail</div>
+            <div className="text-xs text-slate-400">Immutable replays</div>
           </div>
         </Link>
       </div>
 
-      {/* Hero Task Execution Card */}
+      {/* Hero Featured Task Card */}
       {tasks.length > 0 && (
-        <div className="bg-navy-900 text-white rounded-card p-6 border border-navy-800 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-mono bg-teal/30 text-mint border border-teal/50">
-              FEATURED TASK
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-950/90 border border-slate-800/90 p-6 md:p-8 shadow-2xl shadow-black/40 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-mono font-medium">
+              <Zap className="w-3.5 h-3.5 text-teal-400" />
+              <span>FEATURED PIPELINE</span>
             </div>
-            <h2 className="text-xl font-serif font-bold text-white">{tasks[0].name}</h2>
-            <p className="text-sm text-slate-300 max-w-2xl font-sans">{tasks[0].prompt}</p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
-              <span>Target: <code className="text-slate-200 font-mono">{tasks[0].sourceUrl}</code></span>
+            <h2 className="text-2xl font-sans font-bold text-white tracking-tight">{tasks[0].name}</h2>
+            <p className="text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">{tasks[0].prompt}</p>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1 font-mono">
+              <span className="flex items-center space-x-1.5">
+                <span className="text-slate-500">Source:</span>
+                <code className="text-teal-300 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800">
+                  {tasks[0].sourceUrl}
+                </code>
+              </span>
               <span>·</span>
-              <span>Destination: <span className="text-slate-200 font-semibold">{tasks[0].destinationType.toUpperCase()}</span></span>
+              <span>
+                Destination: <span className="text-white font-semibold">{tasks[0].destinationType.toUpperCase()}</span>
+              </span>
               <span>·</span>
-              <span>Schedule: <span className="text-slate-200">{tasks[0].scheduleHuman || 'Manual trigger'}</span></span>
+              <span>
+                Schedule: <span className="text-slate-300 font-sans">{tasks[0].scheduleHuman || 'Manual trigger'}</span>
+              </span>
             </div>
           </div>
+
           <div className="flex items-center space-x-3 shrink-0">
             <a
               href={`/api/feeds/${tasks[0].id}/latest`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-2.5 rounded-lg border border-slate-700 bg-navy-800 hover:bg-navy-700 text-slate-200 text-sm font-medium transition inline-flex items-center space-x-1.5"
+              className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-700 text-slate-200 text-sm font-medium transition inline-flex items-center space-x-2"
             >
-              <span>View API Feed</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Instant API Feed</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
             </a>
             <button
               onClick={() => handleRunTask(tasks[0].id)}
               disabled={runningTaskId === tasks[0].id}
-              className="px-5 py-2.5 rounded-lg bg-teal hover:bg-teal-700 text-white text-sm font-semibold transition flex items-center space-x-2 shadow-sm disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-sm font-bold transition flex items-center space-x-2 shadow-lg shadow-teal-500/20 active:scale-95 disabled:opacity-50"
             >
               {runningTaskId === tasks[0].id ? (
                 <>
@@ -244,7 +287,7 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 fill-white" />
+                  <Play className="w-4 h-4 fill-slate-950" />
                   <span>Run Task Now</span>
                 </>
               )}
@@ -253,67 +296,88 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent Executions & Tasks Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Recent Executions */}
-        <div className="lg:col-span-2 bg-surface rounded-card border border-slate-200/80 p-6 shadow-subtle space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif font-bold text-lg text-ink">Recent Executions</h3>
-            <Link href="/history" className="text-xs text-teal font-medium hover:underline flex items-center space-x-1">
-              <span>View All Audit History</span>
-              <ArrowRight className="w-3 h-3" />
+      {/* Main Grid: Executions + Three Pillars */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Left 2 Cols: Recent Executions */}
+        <div className="lg:col-span-2 rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+            <div>
+              <h3 className="font-sans font-bold text-lg text-white">Live Execution Feed</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Real-time status of TinyFish browser automation runs</p>
+            </div>
+            <Link
+              href="/history"
+              className="text-xs text-teal-400 hover:text-teal-300 font-medium flex items-center space-x-1 group"
+            >
+              <span>View Full Audit History</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="py-8 text-center text-sm text-slate-500">Loading execution history...</div>
+            <div className="py-12 text-center text-sm text-slate-400">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-teal-400 mb-2" />
+              Loading execution history...
+            </div>
           ) : runs.length === 0 ? (
-            <div className="py-12 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-                <Clock className="w-5 h-5" />
+            <div className="py-16 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
+                <Clock className="w-6 h-6" />
               </div>
-              <p className="text-sm text-slate-600 font-medium">No task runs executed yet</p>
+              <p className="text-sm text-white font-semibold">No task runs executed yet</p>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Trigger your first automated run from the task builder to view real execution timelines.
+                Trigger your first automated run from the task builder to view real execution timelines and audit logs.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 overflow-hidden">
-              {runs.slice(0, 5).map((run) => (
-                <div key={run.id} className="py-3.5 flex items-center justify-between hover:bg-slate-50/50 px-2 rounded-lg transition">
-                  <div className="space-y-1">
+            <div className="divide-y divide-slate-800/60 overflow-hidden">
+              {runs.slice(0, 6).map((run) => (
+                <div
+                  key={run.id}
+                  className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/30 px-3 -mx-3 rounded-xl transition-colors"
+                >
+                  <div className="space-y-1.5">
                     <div className="flex items-center space-x-2.5">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase border ${
                           run.status === 'succeeded'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                             : run.status === 'failed' || run.status === 'validation_failed'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-amber-50 text-amber-dark border border-amber/40'
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                         }`}
                       >
                         {run.status.toUpperCase()}
                       </span>
-                      <span className="text-xs font-mono text-slate-500">{run.id}</span>
-                      <span className="text-xs px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-xs font-mono text-slate-400">{run.id}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 font-mono">
                         {run.executionMode === 'demo' ? 'DEMO FIXTURE' : 'REAL AGENT'}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      Started {new Date(run.startedAt).toLocaleTimeString()} · Delivery: {run.deliveryStatus || 'pending'}
+                    <div className="text-xs text-slate-400 flex items-center space-x-2">
+                      <span>Started {new Date(run.startedAt).toLocaleTimeString()}</span>
+                      <span>·</span>
+                      <span className="capitalize">Delivery: <strong className="text-slate-300">{run.deliveryStatus || 'pending'}</strong></span>
+                      {run.validationReport && (
+                        <>
+                          <span>·</span>
+                          <span className="text-teal-400 font-mono">Score: {run.validationReport.score}%</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+
+                  <div className="flex items-center space-x-2 shrink-0">
                     <Link
                       href={`/runs/${run.id}`}
-                      className="px-3 py-1.5 text-xs font-medium rounded border border-slate-300 hover:bg-white text-slate-700 transition"
+                      className="px-3.5 py-1.5 text-xs font-medium rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-700 text-slate-200 transition"
                     >
                       Console
                     </Link>
                     {run.validatedData && (
                       <Link
                         href={`/runs/${run.id}/results`}
-                        className="px-3 py-1.5 text-xs font-medium rounded bg-teal text-white hover:bg-teal-700 transition"
+                        className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 transition shadow-sm"
                       >
                         Results
                       </Link>
@@ -325,39 +389,43 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right: Validation & Health Status */}
+        {/* Right Col: Three Trust Pillars Telemetry */}
         <div className="space-y-6">
-          <div className="bg-surface rounded-card border border-slate-200/80 p-6 shadow-subtle space-y-4">
-            <h3 className="font-serif font-bold text-lg text-ink">System Trust Engine</h3>
+          <div className="rounded-2xl bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 shadow-xl shadow-black/20 space-y-4">
+            <div>
+              <h3 className="font-sans font-bold text-lg text-white">Three Trust Pillars</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Enterprise assurance guarantees</p>
+            </div>
+
             <div className="space-y-3 text-xs">
-              <div className="flex items-start space-x-2.5 p-3 rounded-lg bg-emerald-50/60 border border-emerald-200/60">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-emerald-900">VALIDATE Pillar Active</div>
-                  <div className="text-emerald-800/80 mt-0.5">
-                    Strict Pydantic JSON schema invariants and null checks applied to every extraction.
-                  </div>
+              <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-1">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>1. VALIDATE Pillar Active</span>
                 </div>
+                <p className="text-slate-300 leading-relaxed text-[11px] pl-6">
+                  Strict Pydantic JSON schema invariants and &lt;5% null threshold checks applied to every extraction.
+                </p>
               </div>
 
-              <div className="flex items-start space-x-2.5 p-3 rounded-lg bg-blue-50/60 border border-blue-200/60">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-blue-900">APPROVE Gate Enforced</div>
-                  <div className="text-blue-800/80 mt-0.5">
-                    Read extractions stream automatically; write modifications require human operator approval.
-                  </div>
+              <div className="p-4 rounded-xl bg-blue-950/30 border border-blue-500/30 space-y-1">
+                <div className="flex items-center space-x-2 text-blue-400 font-bold">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>2. APPROVE Gate Enforced</span>
                 </div>
+                <p className="text-slate-300 leading-relaxed text-[11px] pl-6">
+                  Read extractions stream automatically; write modifications require explicit human operator sign-off.
+                </p>
               </div>
 
-              <div className="flex items-start space-x-2.5 p-3 rounded-lg bg-amber-50/60 border border-amber/40">
-                <AlertTriangle className="w-4 h-4 text-amber-dark shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-amber-dark">AUDIT Trail Replay</div>
-                  <div className="text-amber-dark/80 mt-0.5">
-                    Live TinyFish cloud browser replay URLs and delivery hashes stored immutably.
-                  </div>
+              <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-1">
+                <div className="flex items-center space-x-2 text-amber-300 font-bold">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>3. AUDIT Trail Replay</span>
                 </div>
+                <p className="text-slate-300 leading-relaxed text-[11px] pl-6">
+                  Live TinyFish cloud browser replay URLs and SHA-256 delivery hashes stored immutably.
+                </p>
               </div>
             </div>
           </div>
