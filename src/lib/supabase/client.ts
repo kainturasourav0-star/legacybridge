@@ -9,11 +9,22 @@ export const supabase = (supabaseUrl && supabaseKey)
   : null;
 
 // Reliable in-memory fallback store when Supabase keys are not set up locally
-const inMemoryStore = {
+declare global {
+  var __LEGACYBRIDGE_STORE__: {
+    tasks: Map<string, Task>;
+    runs: Map<string, Run>;
+    events: Map<string, RunEvent[]>;
+    initialized?: boolean;
+  } | undefined;
+}
+
+const inMemoryStore = globalThis.__LEGACYBRIDGE_STORE__ || {
   tasks: new Map<string, Task>(),
   runs: new Map<string, Run>(),
   events: new Map<string, RunEvent[]>(),
+  initialized: false,
 };
+globalThis.__LEGACYBRIDGE_STORE__ = inMemoryStore;
 
 // Initialize with Demo Task
 const sampleTaskId = 'task-q3-sales-acme';
@@ -57,8 +68,6 @@ const sampleTask: Task = {
   createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
   updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
 };
-
-inMemoryStore.tasks.set(sampleTaskId, sampleTask);
 
 // Seed initial historical succeeded run
 const sampleRunId = 'run-hist-demo-001';
@@ -110,7 +119,12 @@ const sampleRun: Run = {
     ],
   },
 };
-inMemoryStore.runs.set(sampleRunId, sampleRun);
+
+if (!inMemoryStore.initialized) {
+  inMemoryStore.initialized = true;
+  inMemoryStore.tasks.set(sampleTaskId, sampleTask);
+  inMemoryStore.runs.set(sampleRunId, sampleRun);
+}
 
 export async function dbGetTasks(userId: string): Promise<Task[]> {
   if (supabase) {
